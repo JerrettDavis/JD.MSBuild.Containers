@@ -43,16 +43,22 @@
     ========================================================================
     Docker Build Pipeline: Generate Dockerfile and build container image
     ========================================================================
+    
+    This pipeline supports multiple configuration modes:
+    1. Generate-only: DockerGenerateDockerfile=true, DockerBuildImage=false
+    2. Build-only: DockerGenerateDockerfile=false, DockerBuildImage=true (uses existing Dockerfile)
+    3. Full automation: DockerGenerateDockerfile=true, DockerBuildImage=true
+    4. Custom hooks: Enable specific pre/post scripts independently
   -->
 
   <!-- Lifecycle hook: BeforeDockerGeneration -->
   <Target Name="BeforeDockerGeneration"
-          Condition="'$(DockerEnabled)' == 'true'" />
+          Condition="'$(DockerEnabled)' == 'true' and '$(DockerGenerateDockerfile)' == 'true'" />
 
   <!-- Resolve Docker inputs and project information -->
   <Target Name="DockerResolveInputs"
           DependsOnTargets="BeforeDockerGeneration"
-          Condition="'$(DockerEnabled)' == 'true'">
+          Condition="'$(DockerEnabled)' == 'true' and '$(DockerGenerateDockerfile)' == 'true'">
     <ResolveDockerInputs
         ProjectPath="$(MSBuildProjectFullPath)"
         ProjectDirectory="$(MSBuildProjectDirectory)"
@@ -86,10 +92,10 @@
     </ResolveDockerInputs>
   </Target>
 
-  <!-- Compute fingerprint for incremental builds -->
+  <!-- Compute fingerprint for incremental builds (only if fingerprinting is enabled) -->
   <Target Name="DockerComputeFingerprint"
           DependsOnTargets="DockerResolveInputs"
-          Condition="'$(DockerEnabled)' == 'true'">
+          Condition="'$(DockerEnabled)' == 'true' and '$(DockerGenerateDockerfile)' == 'true' and '$(DockerUseFingerprinting)' == 'true'">
     <MakeDir Directories="$(DockerOutput)" />
     <ComputeDockerFingerprint
         ProjectPath="$(MSBuildProjectFullPath)"
@@ -108,13 +114,13 @@
     </ComputeDockerFingerprint>
   </Target>
 
-  <!-- Generate Dockerfile -->
+  <!-- Generate Dockerfile (respects fingerprinting when enabled) -->
   <Target Name="DockerGenerateDockerfile"
           DependsOnTargets="DockerComputeFingerprint"
           BeforeTargets="CoreCompile"
           Inputs="$(MSBuildProjectFullPath)"
           Outputs="$(DockerStampFile)"
-          Condition="'$(DockerEnabled)' == 'true' and ('$(_DockerFingerprintChanged)' == 'true' or !Exists('$(DockerStampFile)'))">
+          Condition="'$(DockerEnabled)' == 'true' and '$(DockerGenerateDockerfile)' == 'true' and '$(DockerGenerateOnBuild)' == 'true' and ('$(DockerUseFingerprinting)' != 'true' or '$(_DockerFingerprintChanged)' == 'true' or !Exists('$(DockerStampFile)'))">
     <GenerateDockerfile
         ProjectPath="$(MSBuildProjectFullPath)"
         ProjectDirectory="$(MSBuildProjectDirectory)"
@@ -139,44 +145,71 @@
         TemplateFile="$(DockerTemplateFile)"
         OutputFile="$(DockerfileOutput)"
         LogVerbosity="$(DockerLogVerbosity)" />
-    <WriteLinesToFile File="$(DockerStampFile)" Lines="$(_DockerFingerprint)" Overwrite="true" />
+    <WriteLinesToFile File="$(DockerStampFile)" Lines="$(_DockerFingerprint)" Overwrite="true" Condition="'$(DockerUseFingerprinting)' == 'true'" />
     <Message Text="Generated Dockerfile: $(DockerfileOutput)" Importance="high" />
   </Target>
 
   <!-- Lifecycle hook: AfterDockerGeneration -->
   <Target Name="AfterDockerGeneration"
           AfterTargets="DockerGenerateDockerfile"
-          Condition="'$(DockerEnabled)' == 'true'" />
+          Condition="'$(DockerEnabled)' == 'true' and '$(DockerGenerateDockerfile)' == 'true'" />
 
   <!--
     ========================================================================
     Docker Build Integration with MSBuild Hooks
     ========================================================================
+    These targets respect the granular configuration options:
+    - DockerExecutePreBuildScript: Controls pre-build script execution
+    - DockerBuildOnBuild: Controls whether Docker build runs during MSBuild Build
+    - DockerExecutePostBuildScript: Controls post-build script execution
   -->
 
-  <!-- Pre-build script execution -->
+  <!-- Pre-build script execution (if configured and script exists) -->
   <Target Name="DockerExecutePreBuildScript"
           BeforeTargets="DockerBuild"
-          Condition="'$(DockerEnabled)' == 'true' and '$(DockerPreBuildScript)' != '' and Exists('$(DockerPreBuildScript)')">
+          Condition="'$(DockerEnabled)' == 'true' and '$(DockerExecutePreBuildScript)' == 'true' and '$(DockerPreBuildScript)' != '' and Exists('$(DockerPreBuildScript)')">
     <ExecuteDockerScript
         ScriptPath="$(DockerPreBuildScript)"
         WorkingDirectory="$(MSBuildProjectDirectory)"
         LogVerbosity="$(DockerLogVerbosity)" />
+    <Message Text="Executed pre-build script: $(DockerPreBuildScript)" Importance="high" />
   </Target>
 
   <!-- Lifecycle hook: BeforeDockerBuild -->
   <Target Name="BeforeDockerBuild"
-          DependsOnTargets="DockerGenerateDockerfile;DockerExecutePreBuildScript"
-          Condition="'$(DockerEnabled)' == 'true' and '$(DockerBuildOnMSBuild)' == 'true'" />
+          DependsOnTargets="DockerExecutePreBuildScript"
+          Condition="'$(DockerEnabled)' == 'true' and '$(DockerBuildImage)' == 'true' and '$(DockerBuildOnBuild)' == 'true'" />
 
-  <!-- Docker build execution -->
+  <!-- 
+    Validate Dockerfile exists for build-only mode.
+    When DockerGenerateDockerfile=false and DockerBuildImage=true, we need an existing Dockerfile.
+  -->
+  <Target Name="DockerValidateExistingDockerfile"
+          BeforeTargets="DockerBuild"
+          Condition="'$(DockerEnabled)' == 'true' and '$(DockerBuildImage)' == 'true' and '$(DockerGenerateDockerfile)' != 'true'">
+    <PropertyGroup>
+      <_DockerfileToUse Condition="'$(DockerfileSource)' != ''">$(DockerfileSource)</_DockerfileToUse>
+      <_DockerfileToUse Condition="'$(_DockerfileToUse)' == ''">$(DockerfileOutput)</_DockerfileToUse>
+    </PropertyGroup>
+    <Error Condition="!Exists('$(_DockerfileToUse)')"
+           Text="Docker build is enabled but no Dockerfile was found at: $(_DockerfileToUse). Either enable DockerGenerateDockerfile=true or provide an existing Dockerfile at DockerfileSource." />
+    <Message Text="Using existing Dockerfile for build: $(_DockerfileToUse)" Importance="high" />
+  </Target>
+
+  <!-- Docker build execution (runs during Build if DockerBuildOnBuild=true) -->
   <Target Name="DockerBuild"
-          DependsOnTargets="BeforeDockerBuild;Build"
+          DependsOnTargets="BeforeDockerBuild;DockerValidateExistingDockerfile;Build"
           AfterTargets="Build"
-          Condition="'$(DockerEnabled)' == 'true' and '$(DockerBuildOnMSBuild)' == 'true'">
+          Condition="'$(DockerEnabled)' == 'true' and '$(DockerBuildImage)' == 'true' and '$(DockerBuildOnBuild)' == 'true'">
+    <PropertyGroup>
+      <!-- Use generated Dockerfile if generation is enabled, otherwise use source -->
+      <_DockerfilePath Condition="'$(DockerGenerateDockerfile)' == 'true'">$(DockerfileOutput)</_DockerfilePath>
+      <_DockerfilePath Condition="'$(_DockerfilePath)' == '' and '$(DockerfileSource)' != ''">$(DockerfileSource)</_DockerfilePath>
+      <_DockerfilePath Condition="'$(_DockerfilePath)' == ''">$(DockerfileOutput)</_DockerfilePath>
+    </PropertyGroup>
     <ExecuteDockerBuild
         DockerCommand="$(DockerCommand)"
-        DockerfilePath="$(DockerfileOutput)"
+        DockerfilePath="$(_DockerfilePath)"
         BuildContext="$(DockerBuildContext)"
         ImageName="$(DockerImageName)"
         ImageTag="$(DockerImageTag)"
@@ -187,40 +220,42 @@
         LogVerbosity="$(DockerLogVerbosity)">
       <Output TaskParameter="ImageId" PropertyName="_DockerImageId" />
     </ExecuteDockerBuild>
-    <Message Text="Docker image built: $(DockerImageName):$(DockerImageTag)" Importance="high" />
+    <Message Text="Docker image built: $(DockerImageName):$(DockerImageTag) (ID: $(_DockerImageId))" Importance="high" />
   </Target>
 
-  <!-- Post-build script execution -->
+  <!-- Post-build script execution (if configured and script exists) -->
   <Target Name="DockerExecutePostBuildScript"
           AfterTargets="DockerBuild"
-          Condition="'$(DockerEnabled)' == 'true' and '$(DockerPostBuildScript)' != '' and Exists('$(DockerPostBuildScript)')">
+          Condition="'$(DockerEnabled)' == 'true' and '$(DockerExecutePostBuildScript)' == 'true' and '$(DockerPostBuildScript)' != '' and Exists('$(DockerPostBuildScript)')">
     <ExecuteDockerScript
         ScriptPath="$(DockerPostBuildScript)"
         WorkingDirectory="$(MSBuildProjectDirectory)"
         LogVerbosity="$(DockerLogVerbosity)" />
+    <Message Text="Executed post-build script: $(DockerPostBuildScript)" Importance="high" />
   </Target>
 
   <!-- Lifecycle hook: AfterDockerBuild -->
   <Target Name="AfterDockerBuild"
           AfterTargets="DockerExecutePostBuildScript"
-          Condition="'$(DockerEnabled)' == 'true' and '$(DockerBuildOnMSBuild)' == 'true'" />
+          Condition="'$(DockerEnabled)' == 'true' and '$(DockerBuildImage)' == 'true' and '$(DockerBuildOnBuild)' == 'true'" />
 
   <!--
     ========================================================================
     Docker Run Integration
     ========================================================================
+    Runs container after build (opt-in via DockerRunContainer=true and DockerRunOnBuild=true)
   -->
 
   <!-- Lifecycle hook: BeforeDockerRun -->
   <Target Name="BeforeDockerRun"
           DependsOnTargets="DockerBuild"
-          Condition="'$(DockerEnabled)' == 'true' and '$(DockerRunOnMSBuild)' == 'true' and '$(DockerBuildOnMSBuild)' == 'true'" />
+          Condition="'$(DockerEnabled)' == 'true' and '$(DockerRunContainer)' == 'true' and '$(DockerRunOnBuild)' == 'true' and '$(DockerBuildOnBuild)' == 'true'" />
 
   <!-- Docker run execution (opt-in) -->
   <Target Name="DockerRun"
           DependsOnTargets="BeforeDockerRun"
           AfterTargets="DockerBuild"
-          Condition="'$(DockerEnabled)' == 'true' and '$(DockerRunOnMSBuild)' == 'true' and '$(DockerBuildOnMSBuild)' == 'true'">
+          Condition="'$(DockerEnabled)' == 'true' and '$(DockerRunContainer)' == 'true' and '$(DockerRunOnBuild)' == 'true' and '$(DockerBuildOnBuild)' == 'true'">
     <ExecuteDockerRun
         DockerCommand="$(DockerCommand)"
         ImageName="$(DockerImageName)"
@@ -238,32 +273,52 @@
   <!-- Lifecycle hook: AfterDockerRun -->
   <Target Name="AfterDockerRun"
           AfterTargets="DockerRun"
-          Condition="'$(DockerEnabled)' == 'true' and '$(DockerRunOnMSBuild)' == 'true' and '$(DockerBuildOnMSBuild)' == 'true'" />
+          Condition="'$(DockerEnabled)' == 'true' and '$(DockerRunContainer)' == 'true' and '$(DockerRunOnBuild)' == 'true' and '$(DockerBuildOnBuild)' == 'true'" />
 
   <!--
     ========================================================================
     Publish Integration
     ========================================================================
+    These targets run during Publish and respect DockerBuildOnPublish setting.
   -->
 
-  <!-- Pre-publish script execution -->
+  <!-- Pre-publish script execution (if configured and script exists) -->
   <Target Name="DockerExecutePrePublishScript"
           BeforeTargets="DockerPublish"
-          Condition="'$(DockerEnabled)' == 'true' and '$(DockerPrePublishScript)' != '' and Exists('$(DockerPrePublishScript)')">
+          Condition="'$(DockerEnabled)' == 'true' and '$(DockerExecutePrePublishScript)' == 'true' and '$(DockerPrePublishScript)' != '' and Exists('$(DockerPrePublishScript)')">
     <ExecuteDockerScript
         ScriptPath="$(DockerPrePublishScript)"
         WorkingDirectory="$(MSBuildProjectDirectory)"
         LogVerbosity="$(DockerLogVerbosity)" />
+    <Message Text="Executed pre-publish script: $(DockerPrePublishScript)" Importance="high" />
   </Target>
 
-  <!-- Docker build on publish -->
+  <!-- Validate Dockerfile exists for publish -->
+  <Target Name="DockerValidateDockerfileForPublish"
+          BeforeTargets="DockerPublish"
+          Condition="'$(DockerEnabled)' == 'true' and '$(DockerBuildImage)' == 'true' and '$(DockerBuildOnPublish)' == 'true' and '$(DockerGenerateDockerfile)' != 'true'">
+    <PropertyGroup>
+      <_DockerfileToUse Condition="'$(DockerfileSource)' != ''">$(DockerfileSource)</_DockerfileToUse>
+      <_DockerfileToUse Condition="'$(_DockerfileToUse)' == ''">$(DockerfileOutput)</_DockerfileToUse>
+    </PropertyGroup>
+    <Error Condition="!Exists('$(_DockerfileToUse)')"
+           Text="Docker build on publish is enabled but no Dockerfile was found at: $(_DockerfileToUse). Either enable DockerGenerateDockerfile=true or provide an existing Dockerfile at DockerfileSource." />
+  </Target>
+
+  <!-- Docker build on publish (respects DockerBuildOnPublish setting) -->
   <Target Name="DockerPublish"
-          DependsOnTargets="DockerGenerateDockerfile;DockerExecutePrePublishScript;Publish"
+          DependsOnTargets="DockerExecutePrePublishScript;DockerValidateDockerfileForPublish;Publish"
           AfterTargets="Publish"
-          Condition="'$(DockerEnabled)' == 'true'">
+          Condition="'$(DockerEnabled)' == 'true' and '$(DockerBuildImage)' == 'true' and '$(DockerBuildOnPublish)' == 'true'">
+    <PropertyGroup>
+      <!-- Use generated Dockerfile if generation is enabled, otherwise use source -->
+      <_DockerfilePath Condition="'$(DockerGenerateDockerfile)' == 'true'">$(DockerfileOutput)</_DockerfilePath>
+      <_DockerfilePath Condition="'$(_DockerfilePath)' == '' and '$(DockerfileSource)' != ''">$(DockerfileSource)</_DockerfilePath>
+      <_DockerfilePath Condition="'$(_DockerfilePath)' == ''">$(DockerfileOutput)</_DockerfilePath>
+    </PropertyGroup>
     <ExecuteDockerBuild
         DockerCommand="$(DockerCommand)"
-        DockerfilePath="$(DockerfileOutput)"
+        DockerfilePath="$(_DockerfilePath)"
         BuildContext="$(DockerBuildContext)"
         ImageName="$(DockerImageName)"
         ImageTag="$(DockerImageTag)"
@@ -274,17 +329,36 @@
         LogVerbosity="$(DockerLogVerbosity)">
       <Output TaskParameter="ImageId" PropertyName="_DockerPublishImageId" />
     </ExecuteDockerBuild>
-    <Message Text="Docker image published: $(DockerImageName):$(DockerImageTag)" Importance="high" />
+    <Message Text="Docker image published: $(DockerImageName):$(DockerImageTag) (ID: $(_DockerPublishImageId))" Importance="high" />
   </Target>
 
-  <!-- Post-publish script execution -->
+  <!-- Post-publish script execution (if configured and script exists) -->
   <Target Name="DockerExecutePostPublishScript"
           AfterTargets="DockerPublish"
-          Condition="'$(DockerEnabled)' == 'true' and '$(DockerPostPublishScript)' != '' and Exists('$(DockerPostPublishScript)')">
+          Condition="'$(DockerEnabled)' == 'true' and '$(DockerExecutePostPublishScript)' == 'true' and '$(DockerPostPublishScript)' != '' and Exists('$(DockerPostPublishScript)')">
     <ExecuteDockerScript
         ScriptPath="$(DockerPostPublishScript)"
         WorkingDirectory="$(MSBuildProjectDirectory)"
         LogVerbosity="$(DockerLogVerbosity)" />
+    <Message Text="Executed post-publish script: $(DockerPostPublishScript)" Importance="high" />
+  </Target>
+
+  <!-- Push to registry (opt-in via DockerPushImage=true and DockerPushOnPublish=true) -->
+  <Target Name="DockerPushImage"
+          AfterTargets="DockerPublish"
+          Condition="'$(DockerEnabled)' == 'true' and '$(DockerPushImage)' == 'true' and '$(DockerPushOnPublish)' == 'true' and '$(DockerRegistry)' != ''">
+    <PropertyGroup>
+      <_DockerFullImageName Condition="'$(DockerRegistry)' != ''">$(DockerRegistry)/$(DockerImageName):$(DockerImageTag)</_DockerFullImageName>
+      <_DockerFullImageName Condition="'$(DockerRegistry)' == ''">$(DockerImageName):$(DockerImageTag)</_DockerFullImageName>
+    </PropertyGroup>
+    
+    <!-- Push the image -->
+    <Exec Command="$(DockerCommand) push $(_DockerFullImageName)"
+          WorkingDirectory="$(MSBuildProjectDirectory)"
+          ConsoleToMSBuild="true">
+      <Output TaskParameter="ConsoleOutput" PropertyName="_DockerPushOutput" />
+    </Exec>
+    <Message Text="Docker image pushed to registry: $(_DockerFullImageName)" Importance="high" />
   </Target>
 
   <!--
@@ -293,13 +367,15 @@
     ========================================================================
   -->
 
-  <!-- Clean target: remove Docker output directory and generated Dockerfile -->
+  <!-- Clean target: remove Docker output directory and optionally generated Dockerfile -->
   <Target Name="DockerClean"
           AfterTargets="Clean"
           Condition="'$(DockerEnabled)' == 'true'">
     <Message Text="Cleaning Docker output: $(DockerOutput)" Importance="normal" />
     <RemoveDir Directories="$(DockerOutput)" Condition="Exists('$(DockerOutput)')" />
-    <Delete Files="$(DockerfileOutput)" Condition="Exists('$(DockerfileOutput)')" />
+    <!-- Only delete Dockerfile if it was generated (not if using existing Dockerfile) -->
+    <Delete Files="$(DockerfileOutput)" Condition="'$(DockerGenerateDockerfile)' == 'true' and Exists('$(DockerfileOutput)')" />
+    <Message Text="Cleaned generated Dockerfile: $(DockerfileOutput)" Importance="normal" Condition="'$(DockerGenerateDockerfile)' == 'true' and Exists('$(DockerfileOutput)')" />
   </Target>
 
 </Project>
