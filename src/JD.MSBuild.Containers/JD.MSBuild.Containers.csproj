@@ -1,0 +1,71 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
+    <IsPackable>true</IsPackable>
+    
+    <!-- Package Identity -->
+    <PackageId>JD.MSBuild.Containers</PackageId>
+    <Authors>Jerrett Davis</Authors>
+    <Company>JDH Productions</Company>
+    
+    <!-- Package Description -->
+    <Title>MSBuild Integration for Docker Containers</Title>
+    <Description>Enterprise-grade MSBuild integration for Docker containerization. Automatically generate Dockerfiles for .NET projects, customize with pre/post scripts, and integrate Docker build into your MSBuild pipeline. Zero manual steps, full CI/CD support, reproducible container builds. Generates optimized multi-stage Dockerfiles during dotnet build with support for custom entrypoints and build arguments.</Description>
+    <PackageTags>docker;containers;msbuild;dockerfile;dotnet;build-automation;ci-cd;containerization;devops</PackageTags>
+    <PackageProjectUrl>https://github.com/jerrettdavis/JD.MSBuild.Containers</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/jerrettdavis/JD.MSBuild.Containers</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+    
+    <!-- Build Configuration -->
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
+    <NoWarn>$(NoWarn);NU5128;NU5100</NoWarn>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../JD.MSBuild.Containers.Tasks/JD.MSBuild.Containers.Tasks.csproj"
+                      ReferenceOutputAssembly="false"
+                      PrivateAssets="All"
+                      IncludeAssets="None" />
+  </ItemGroup>
+
+  <!--
+    NOTE: We use build/ (not buildTransitive/) so that targets only apply to
+    projects that DIRECTLY reference this package. This prevents transitive
+    consumers from triggering Docker builds.
+
+    NuGet folder behavior:
+    - build/       -> Only direct PackageReference consumers
+    - buildTransitive/ -> ALL consumers (direct and transitive)
+  -->
+  <ItemGroup>
+    <Content Include="buildTransitive/JD.MSBuild.Containers.props" Pack="true" PackagePath="build" />
+    <Content Include="buildTransitive/JD.MSBuild.Containers.targets" Pack="true" PackagePath="build" />
+
+    <None Include="../../README.md" Pack="true" PackagePath="" />
+  </ItemGroup>
+
+  <!-- Collect task assemblies from the referenced project after build -->
+  <Target Name="IncludeTaskAssembliesInPack" BeforeTargets="_GetPackageFiles">
+    <ItemGroup>
+      <!-- Include task assemblies in tasks folder to avoid file locking during restore -->
+      <!-- .NET Core MSBuild targets -->
+      <None Include="../JD.MSBuild.Containers.Tasks/bin/$(Configuration)/net8.0/*.dll" Pack="true" PackagePath="tasks/net8.0" Condition="Exists('../JD.MSBuild.Containers.Tasks/bin/$(Configuration)/net8.0/JD.MSBuild.Containers.Tasks.dll')" />
+      <None Include="../JD.MSBuild.Containers.Tasks/bin/$(Configuration)/net8.0/*.deps.json" Pack="true" PackagePath="tasks/net8.0" Condition="Exists('../JD.MSBuild.Containers.Tasks/bin/$(Configuration)/net8.0/JD.MSBuild.Containers.Tasks.dll')" />
+      <None Include="../JD.MSBuild.Containers.Tasks/bin/$(Configuration)/net9.0/*.dll" Pack="true" PackagePath="tasks/net9.0" Condition="Exists('../JD.MSBuild.Containers.Tasks/bin/$(Configuration)/net9.0/JD.MSBuild.Containers.Tasks.dll')" />
+      <None Include="../JD.MSBuild.Containers.Tasks/bin/$(Configuration)/net9.0/*.deps.json" Pack="true" PackagePath="tasks/net9.0" Condition="Exists('../JD.MSBuild.Containers.Tasks/bin/$(Configuration)/net9.0/JD.MSBuild.Containers.Tasks.dll')" />
+      <None Include="../JD.MSBuild.Containers.Tasks/bin/$(Configuration)/net10.0/*.dll" Pack="true" PackagePath="tasks/net10.0" Condition="Exists('../JD.MSBuild.Containers.Tasks/bin/$(Configuration)/net10.0/JD.MSBuild.Containers.Tasks.dll')" />
+      <None Include="../JD.MSBuild.Containers.Tasks/bin/$(Configuration)/net10.0/*.deps.json" Pack="true" PackagePath="tasks/net10.0" Condition="Exists('../JD.MSBuild.Containers.Tasks/bin/$(Configuration)/net10.0/JD.MSBuild.Containers.Tasks.dll')" />
+    </ItemGroup>
+  </Target>
+
+  <ItemGroup>
+    <None Include="defaults/**/*.*" Pack="true" PackagePath="build/Defaults" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,99 @@
+<Project>
+  <PropertyGroup>
+    <!--
+      Enablement: Disabled by default. Users opt-in by setting DockerEnabled=true.
+      
+      To enable Docker integration, set:
+        <DockerEnabled>true</DockerEnabled>
+    -->
+    <DockerEnabled Condition="'$(DockerEnabled)'==''">false</DockerEnabled>
+
+    <!-- Output paths -->
+    <DockerOutput Condition="'$(DockerOutput)'==''">$(BaseIntermediateOutputPath)docker\</DockerOutput>
+    <DockerfileOutput Condition="'$(DockerfileOutput)'==''">$(MSBuildProjectDirectory)\Dockerfile</DockerfileOutput>
+    
+    <!-- Docker image configuration -->
+    <DockerImageName Condition="'$(DockerImageName)'==''">$(AssemblyName.ToLowerInvariant())</DockerImageName>
+    <DockerImageTag Condition="'$(DockerImageTag)'==''">latest</DockerImageTag>
+    <DockerRegistry Condition="'$(DockerRegistry)'==''"></DockerRegistry>
+    
+    <!-- Base image configuration -->
+    <DockerBaseImageRuntime Condition="'$(DockerBaseImageRuntime)'==''">mcr.microsoft.com/dotnet/aspnet</DockerBaseImageRuntime>
+    <DockerBaseImageSdk Condition="'$(DockerBaseImageSdk)'==''">mcr.microsoft.com/dotnet/sdk</DockerBaseImageSdk>
+    <DockerBaseImageVersion Condition="'$(DockerBaseImageVersion)'==''">$(TargetFrameworkVersion.TrimStart('v'))</DockerBaseImageVersion>
+    
+    <!-- Build context -->
+    <DockerBuildContext Condition="'$(DockerBuildContext)'==''">$(MSBuildProjectDirectory)</DockerBuildContext>
+    <DockerWorkDir Condition="'$(DockerWorkDir)'==''">/app</DockerWorkDir>
+    
+    <!-- Entrypoint and command configuration -->
+    <DockerEntrypoint Condition="'$(DockerEntrypoint)'==''"></DockerEntrypoint>
+    <DockerCmd Condition="'$(DockerCmd)'==''"></DockerCmd>
+    
+    <!-- Build arguments -->
+    <DockerBuildArgs Condition="'$(DockerBuildArgs)'==''"></DockerBuildArgs>
+    
+    <!-- Pre/Post build scripts -->
+    <DockerPreBuildScript Condition="'$(DockerPreBuildScript)'==''"></DockerPreBuildScript>
+    <DockerPostBuildScript Condition="'$(DockerPostBuildScript)'==''"></DockerPostBuildScript>
+    
+    <!-- Pre/Post publish scripts -->
+    <DockerPrePublishScript Condition="'$(DockerPrePublishScript)'==''"></DockerPrePublishScript>
+    <DockerPostPublishScript Condition="'$(DockerPostPublishScript)'==''"></DockerPostPublishScript>
+    
+    <!-- Docker build options -->
+    <DockerBuildOnMSBuild Condition="'$(DockerBuildOnMSBuild)'==''">false</DockerBuildOnMSBuild>
+    <DockerRunOnMSBuild Condition="'$(DockerRunOnMSBuild)'==''">false</DockerRunOnMSBuild>
+    <DockerBuildPlatform Condition="'$(DockerBuildPlatform)'==''"></DockerBuildPlatform>
+    <DockerBuildTarget Condition="'$(DockerBuildTarget)'==''"></DockerBuildTarget>
+    
+    <!-- Port mappings for Docker run -->
+    <DockerPortMappings Condition="'$(DockerPortMappings)'==''"></DockerPortMappings>
+    <DockerEnvironmentVariables Condition="'$(DockerEnvironmentVariables)'==''"></DockerEnvironmentVariables>
+    <DockerVolumeMappings Condition="'$(DockerVolumeMappings)'==''"></DockerVolumeMappings>
+    
+    <!-- Multi-stage build configuration -->
+    <DockerUseMultiStage Condition="'$(DockerUseMultiStage)'==''">true</DockerUseMultiStage>
+    <DockerRestoreStage Condition="'$(DockerRestoreStage)'==''">restore</DockerRestoreStage>
+    <DockerBuildStage Condition="'$(DockerBuildStage)'==''">build</DockerBuildStage>
+    <DockerPublishStage Condition="'$(DockerPublishStage)'==''">publish</DockerPublishStage>
+    <DockerFinalStage Condition="'$(DockerFinalStage)'==''">final</DockerFinalStage>
+    
+    <!-- Project type detection -->
+    <DockerProjectType Condition="'$(DockerProjectType)'=='' and '$(OutputType)'=='Exe'">console</DockerProjectType>
+    <DockerProjectType Condition="'$(DockerProjectType)'=='' and '$(OutputType)'!='Exe'">library</DockerProjectType>
+    
+    <!-- Expose port (ASP.NET Core default) -->
+    <DockerExposePort Condition="'$(DockerExposePort)'=='' and $(DockerProjectType)=='console'">8080</DockerExposePort>
+    
+    <!-- Fingerprinting for incremental builds -->
+    <DockerFingerprintFile Condition="'$(DockerFingerprintFile)'==''">$(DockerOutput)fingerprint.txt</DockerFingerprintFile>
+    <DockerStampFile Condition="'$(DockerStampFile)'==''">$(DockerOutput).docker.stamp</DockerStampFile>
+    
+    <!-- Diagnostics -->
+    <DockerLogVerbosity Condition="'$(DockerLogVerbosity)'==''">minimal</DockerLogVerbosity>
+    <DockerDumpConfiguration Condition="'$(DockerDumpConfiguration)'==''">false</DockerDumpConfiguration>
+    
+    <!-- Docker command configuration -->
+    <DockerCommand Condition="'$(DockerCommand)'==''">docker</DockerCommand>
+    
+    <!-- NuGet restore configuration for Dockerfile -->
+    <DockerNuGetConfigPath Condition="'$(DockerNuGetConfigPath)'==''"></DockerNuGetConfigPath>
+    
+    <!-- Custom Dockerfile template path -->
+    <DockerTemplateFile Condition="'$(DockerTemplateFile)'==''"></DockerTemplateFile>
+    
+    <!-- Layer optimization -->
+    <DockerOptimizeLayers Condition="'$(DockerOptimizeLayers)'==''">true</DockerOptimizeLayers>
+    
+    <!-- Security scanning (optional integration) -->
+    <DockerScanImage Condition="'$(DockerScanImage)'==''">false</DockerScanImage>
+    
+    <!-- Push to registry options -->
+    <DockerPushOnPublish Condition="'$(DockerPushOnPublish)'==''">false</DockerPushOnPublish>
+    
+    <!-- Container user configuration -->
+    <DockerUser Condition="'$(DockerUser)'==''">app</DockerUser>
+    <DockerCreateUser Condition="'$(DockerCreateUser)'==''">true</DockerCreateUser>
+  </PropertyGroup>
+</Project>

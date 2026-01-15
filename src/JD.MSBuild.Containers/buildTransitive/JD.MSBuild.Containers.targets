@@ -1,0 +1,305 @@
+<Project>
+
+  <!--
+    Determine the correct task assembly path based on MSBuild runtime and version.
+  -->
+  <PropertyGroup>
+    <!-- For .NET Core MSBuild, select task assembly based on MSBuild version -->
+    <_DockerTasksFolder Condition="'$(MSBuildRuntimeType)' == 'Core' and $([MSBuild]::VersionGreaterThanOrEquals('$(MSBuildVersion)', '18.0'))">net10.0</_DockerTasksFolder>
+    <_DockerTasksFolder Condition="'$(_DockerTasksFolder)' == '' and '$(MSBuildRuntimeType)' == 'Core' and $([MSBuild]::VersionGreaterThanOrEquals('$(MSBuildVersion)', '17.14'))">net10.0</_DockerTasksFolder>
+    <_DockerTasksFolder Condition="'$(_DockerTasksFolder)' == '' and '$(MSBuildRuntimeType)' == 'Core' and $([MSBuild]::VersionGreaterThanOrEquals('$(MSBuildVersion)', '17.12'))">net9.0</_DockerTasksFolder>
+    <_DockerTasksFolder Condition="'$(_DockerTasksFolder)' == '' and '$(MSBuildRuntimeType)' == 'Core'">net8.0</_DockerTasksFolder>
+
+    <!-- Primary path: NuGet package location -->
+    <_DockerTaskAssembly>$(MSBuildThisFileDirectory)..\tasks\$(_DockerTasksFolder)\JD.MSBuild.Containers.Tasks.dll</_DockerTaskAssembly>
+
+    <!-- Fallback path: Local development (when building from source) -->
+    <_DockerTaskAssembly Condition="!Exists('$(_DockerTaskAssembly)')">$(MSBuildThisFileDirectory)..\..\JD.MSBuild.Containers.Tasks\bin\$(Configuration)\$(_DockerTasksFolder)\JD.MSBuild.Containers.Tasks.dll</_DockerTaskAssembly>
+    <_DockerTaskAssembly Condition="!Exists('$(_DockerTaskAssembly)') and '$(Configuration)' == ''">$(MSBuildThisFileDirectory)..\..\JD.MSBuild.Containers.Tasks\bin\Debug\$(_DockerTasksFolder)\JD.MSBuild.Containers.Tasks.dll</_DockerTaskAssembly>
+  </PropertyGroup>
+
+  <!--
+    Register MSBuild tasks.
+  -->
+  <UsingTask TaskName="JD.MSBuild.Containers.Tasks.ResolveDockerInputs"
+             AssemblyFile="$(_DockerTaskAssembly)" />
+
+  <UsingTask TaskName="JD.MSBuild.Containers.Tasks.GenerateDockerfile"
+             AssemblyFile="$(_DockerTaskAssembly)" />
+
+  <UsingTask TaskName="JD.MSBuild.Containers.Tasks.ComputeDockerFingerprint"
+             AssemblyFile="$(_DockerTaskAssembly)" />
+
+  <UsingTask TaskName="JD.MSBuild.Containers.Tasks.ExecuteDockerBuild"
+             AssemblyFile="$(_DockerTaskAssembly)" />
+
+  <UsingTask TaskName="JD.MSBuild.Containers.Tasks.ExecuteDockerRun"
+             AssemblyFile="$(_DockerTaskAssembly)" />
+
+  <UsingTask TaskName="JD.MSBuild.Containers.Tasks.ExecuteDockerScript"
+             AssemblyFile="$(_DockerTaskAssembly)" />
+
+  <!--
+    ========================================================================
+    Docker Build Pipeline: Generate Dockerfile and build container image
+    ========================================================================
+  -->
+
+  <!-- Lifecycle hook: BeforeDockerGeneration -->
+  <Target Name="BeforeDockerGeneration"
+          Condition="'$(DockerEnabled)' == 'true'" />
+
+  <!-- Resolve Docker inputs and project information -->
+  <Target Name="DockerResolveInputs"
+          DependsOnTargets="BeforeDockerGeneration"
+          Condition="'$(DockerEnabled)' == 'true'">
+    <ResolveDockerInputs
+        ProjectPath="$(MSBuildProjectFullPath)"
+        ProjectDirectory="$(MSBuildProjectDirectory)"
+        AssemblyName="$(AssemblyName)"
+        TargetFramework="$(TargetFramework)"
+        TargetFrameworkVersion="$(TargetFrameworkVersion)"
+        OutputType="$(OutputType)"
+        RuntimeIdentifier="$(RuntimeIdentifier)"
+        SelfContained="$(SelfContained)"
+        PublishSingleFile="$(PublishSingleFile)"
+        PublishTrimmed="$(PublishTrimmed)"
+        Configuration="$(Configuration)"
+        OutputPath="$(OutputPath)"
+        ProjectReferences="@(ProjectReference)"
+        PackageReferences="@(PackageReference)"
+        DockerProjectType="$(DockerProjectType)"
+        DockerBaseImageRuntime="$(DockerBaseImageRuntime)"
+        DockerBaseImageSdk="$(DockerBaseImageSdk)"
+        DockerBaseImageVersion="$(DockerBaseImageVersion)"
+        DockerWorkDir="$(DockerWorkDir)"
+        DockerExposePort="$(DockerExposePort)"
+        DockerEntrypoint="$(DockerEntrypoint)"
+        DockerCmd="$(DockerCmd)"
+        LogVerbosity="$(DockerLogVerbosity)">
+      <Output TaskParameter="ResolvedProjectType" PropertyName="_DockerResolvedProjectType" />
+      <Output TaskParameter="ResolvedBaseImageRuntime" PropertyName="_DockerResolvedBaseImageRuntime" />
+      <Output TaskParameter="ResolvedBaseImageSdk" PropertyName="_DockerResolvedBaseImageSdk" />
+      <Output TaskParameter="ResolvedEntrypoint" PropertyName="_DockerResolvedEntrypoint" />
+      <Output TaskParameter="ResolvedCmd" PropertyName="_DockerResolvedCmd" />
+      <Output TaskParameter="ResolvedExposePort" PropertyName="_DockerResolvedExposePort" />
+    </ResolveDockerInputs>
+  </Target>
+
+  <!-- Compute fingerprint for incremental builds -->
+  <Target Name="DockerComputeFingerprint"
+          DependsOnTargets="DockerResolveInputs"
+          Condition="'$(DockerEnabled)' == 'true'">
+    <MakeDir Directories="$(DockerOutput)" />
+    <ComputeDockerFingerprint
+        ProjectPath="$(MSBuildProjectFullPath)"
+        Configuration="$(Configuration)"
+        TargetFramework="$(TargetFramework)"
+        DockerBaseImageRuntime="$(_DockerResolvedBaseImageRuntime)"
+        DockerBaseImageSdk="$(_DockerResolvedBaseImageSdk)"
+        DockerEntrypoint="$(_DockerResolvedEntrypoint)"
+        DockerCmd="$(_DockerResolvedCmd)"
+        DockerBuildArgs="$(DockerBuildArgs)"
+        DockerTemplateFile="$(DockerTemplateFile)"
+        FingerprintFile="$(DockerFingerprintFile)"
+        LogVerbosity="$(DockerLogVerbosity)">
+      <Output TaskParameter="Fingerprint" PropertyName="_DockerFingerprint" />
+      <Output TaskParameter="HasChanged" PropertyName="_DockerFingerprintChanged" />
+    </ComputeDockerFingerprint>
+  </Target>
+
+  <!-- Generate Dockerfile -->
+  <Target Name="DockerGenerateDockerfile"
+          DependsOnTargets="DockerComputeFingerprint"
+          BeforeTargets="CoreCompile"
+          Inputs="$(MSBuildProjectFullPath)"
+          Outputs="$(DockerStampFile)"
+          Condition="'$(DockerEnabled)' == 'true' and ('$(_DockerFingerprintChanged)' == 'true' or !Exists('$(DockerStampFile)'))">
+    <GenerateDockerfile
+        ProjectPath="$(MSBuildProjectFullPath)"
+        ProjectDirectory="$(MSBuildProjectDirectory)"
+        AssemblyName="$(AssemblyName)"
+        TargetFramework="$(TargetFramework)"
+        ProjectType="$(_DockerResolvedProjectType)"
+        BaseImageRuntime="$(_DockerResolvedBaseImageRuntime)"
+        BaseImageSdk="$(_DockerResolvedBaseImageSdk)"
+        WorkDir="$(DockerWorkDir)"
+        ExposePort="$(_DockerResolvedExposePort)"
+        Entrypoint="$(_DockerResolvedEntrypoint)"
+        Cmd="$(_DockerResolvedCmd)"
+        UseMultiStage="$(DockerUseMultiStage)"
+        RestoreStage="$(DockerRestoreStage)"
+        BuildStage="$(DockerBuildStage)"
+        PublishStage="$(DockerPublishStage)"
+        FinalStage="$(DockerFinalStage)"
+        OptimizeLayers="$(DockerOptimizeLayers)"
+        CreateUser="$(DockerCreateUser)"
+        User="$(DockerUser)"
+        NuGetConfigPath="$(DockerNuGetConfigPath)"
+        TemplateFile="$(DockerTemplateFile)"
+        OutputFile="$(DockerfileOutput)"
+        LogVerbosity="$(DockerLogVerbosity)" />
+    <WriteLinesToFile File="$(DockerStampFile)" Lines="$(_DockerFingerprint)" Overwrite="true" />
+    <Message Text="Generated Dockerfile: $(DockerfileOutput)" Importance="high" />
+  </Target>
+
+  <!-- Lifecycle hook: AfterDockerGeneration -->
+  <Target Name="AfterDockerGeneration"
+          AfterTargets="DockerGenerateDockerfile"
+          Condition="'$(DockerEnabled)' == 'true'" />
+
+  <!--
+    ========================================================================
+    Docker Build Integration with MSBuild Hooks
+    ========================================================================
+  -->
+
+  <!-- Pre-build script execution -->
+  <Target Name="DockerExecutePreBuildScript"
+          BeforeTargets="DockerBuild"
+          Condition="'$(DockerEnabled)' == 'true' and '$(DockerPreBuildScript)' != '' and Exists('$(DockerPreBuildScript)')">
+    <ExecuteDockerScript
+        ScriptPath="$(DockerPreBuildScript)"
+        WorkingDirectory="$(MSBuildProjectDirectory)"
+        LogVerbosity="$(DockerLogVerbosity)" />
+  </Target>
+
+  <!-- Lifecycle hook: BeforeDockerBuild -->
+  <Target Name="BeforeDockerBuild"
+          DependsOnTargets="DockerGenerateDockerfile;DockerExecutePreBuildScript"
+          Condition="'$(DockerEnabled)' == 'true' and '$(DockerBuildOnMSBuild)' == 'true'" />
+
+  <!-- Docker build execution -->
+  <Target Name="DockerBuild"
+          DependsOnTargets="BeforeDockerBuild;Build"
+          AfterTargets="Build"
+          Condition="'$(DockerEnabled)' == 'true' and '$(DockerBuildOnMSBuild)' == 'true'">
+    <ExecuteDockerBuild
+        DockerCommand="$(DockerCommand)"
+        DockerfilePath="$(DockerfileOutput)"
+        BuildContext="$(DockerBuildContext)"
+        ImageName="$(DockerImageName)"
+        ImageTag="$(DockerImageTag)"
+        Registry="$(DockerRegistry)"
+        BuildArgs="$(DockerBuildArgs)"
+        Platform="$(DockerBuildPlatform)"
+        Target="$(DockerBuildTarget)"
+        LogVerbosity="$(DockerLogVerbosity)">
+      <Output TaskParameter="ImageId" PropertyName="_DockerImageId" />
+    </ExecuteDockerBuild>
+    <Message Text="Docker image built: $(DockerImageName):$(DockerImageTag)" Importance="high" />
+  </Target>
+
+  <!-- Post-build script execution -->
+  <Target Name="DockerExecutePostBuildScript"
+          AfterTargets="DockerBuild"
+          Condition="'$(DockerEnabled)' == 'true' and '$(DockerPostBuildScript)' != '' and Exists('$(DockerPostBuildScript)')">
+    <ExecuteDockerScript
+        ScriptPath="$(DockerPostBuildScript)"
+        WorkingDirectory="$(MSBuildProjectDirectory)"
+        LogVerbosity="$(DockerLogVerbosity)" />
+  </Target>
+
+  <!-- Lifecycle hook: AfterDockerBuild -->
+  <Target Name="AfterDockerBuild"
+          AfterTargets="DockerExecutePostBuildScript"
+          Condition="'$(DockerEnabled)' == 'true' and '$(DockerBuildOnMSBuild)' == 'true'" />
+
+  <!--
+    ========================================================================
+    Docker Run Integration
+    ========================================================================
+  -->
+
+  <!-- Lifecycle hook: BeforeDockerRun -->
+  <Target Name="BeforeDockerRun"
+          DependsOnTargets="DockerBuild"
+          Condition="'$(DockerEnabled)' == 'true' and '$(DockerRunOnMSBuild)' == 'true' and '$(DockerBuildOnMSBuild)' == 'true'" />
+
+  <!-- Docker run execution (opt-in) -->
+  <Target Name="DockerRun"
+          DependsOnTargets="BeforeDockerRun"
+          AfterTargets="DockerBuild"
+          Condition="'$(DockerEnabled)' == 'true' and '$(DockerRunOnMSBuild)' == 'true' and '$(DockerBuildOnMSBuild)' == 'true'">
+    <ExecuteDockerRun
+        DockerCommand="$(DockerCommand)"
+        ImageName="$(DockerImageName)"
+        ImageTag="$(DockerImageTag)"
+        Registry="$(DockerRegistry)"
+        PortMappings="$(DockerPortMappings)"
+        EnvironmentVariables="$(DockerEnvironmentVariables)"
+        VolumeMappings="$(DockerVolumeMappings)"
+        LogVerbosity="$(DockerLogVerbosity)">
+      <Output TaskParameter="ContainerId" PropertyName="_DockerContainerId" />
+    </ExecuteDockerRun>
+    <Message Text="Docker container started: $(_DockerContainerId)" Importance="high" />
+  </Target>
+
+  <!-- Lifecycle hook: AfterDockerRun -->
+  <Target Name="AfterDockerRun"
+          AfterTargets="DockerRun"
+          Condition="'$(DockerEnabled)' == 'true' and '$(DockerRunOnMSBuild)' == 'true' and '$(DockerBuildOnMSBuild)' == 'true'" />
+
+  <!--
+    ========================================================================
+    Publish Integration
+    ========================================================================
+  -->
+
+  <!-- Pre-publish script execution -->
+  <Target Name="DockerExecutePrePublishScript"
+          BeforeTargets="DockerPublish"
+          Condition="'$(DockerEnabled)' == 'true' and '$(DockerPrePublishScript)' != '' and Exists('$(DockerPrePublishScript)')">
+    <ExecuteDockerScript
+        ScriptPath="$(DockerPrePublishScript)"
+        WorkingDirectory="$(MSBuildProjectDirectory)"
+        LogVerbosity="$(DockerLogVerbosity)" />
+  </Target>
+
+  <!-- Docker build on publish -->
+  <Target Name="DockerPublish"
+          DependsOnTargets="DockerGenerateDockerfile;DockerExecutePrePublishScript;Publish"
+          AfterTargets="Publish"
+          Condition="'$(DockerEnabled)' == 'true'">
+    <ExecuteDockerBuild
+        DockerCommand="$(DockerCommand)"
+        DockerfilePath="$(DockerfileOutput)"
+        BuildContext="$(DockerBuildContext)"
+        ImageName="$(DockerImageName)"
+        ImageTag="$(DockerImageTag)"
+        Registry="$(DockerRegistry)"
+        BuildArgs="$(DockerBuildArgs)"
+        Platform="$(DockerBuildPlatform)"
+        Target="$(DockerBuildTarget)"
+        LogVerbosity="$(DockerLogVerbosity)">
+      <Output TaskParameter="ImageId" PropertyName="_DockerPublishImageId" />
+    </ExecuteDockerBuild>
+    <Message Text="Docker image published: $(DockerImageName):$(DockerImageTag)" Importance="high" />
+  </Target>
+
+  <!-- Post-publish script execution -->
+  <Target Name="DockerExecutePostPublishScript"
+          AfterTargets="DockerPublish"
+          Condition="'$(DockerEnabled)' == 'true' and '$(DockerPostPublishScript)' != '' and Exists('$(DockerPostPublishScript)')">
+    <ExecuteDockerScript
+        ScriptPath="$(DockerPostPublishScript)"
+        WorkingDirectory="$(MSBuildProjectDirectory)"
+        LogVerbosity="$(DockerLogVerbosity)" />
+  </Target>
+
+  <!--
+    ========================================================================
+    Clean Integration
+    ========================================================================
+  -->
+
+  <!-- Clean target: remove Docker output directory and generated Dockerfile -->
+  <Target Name="DockerClean"
+          AfterTargets="Clean"
+          Condition="'$(DockerEnabled)' == 'true'">
+    <Message Text="Cleaning Docker output: $(DockerOutput)" Importance="normal" />
+    <RemoveDir Directories="$(DockerOutput)" Condition="Exists('$(DockerOutput)')" />
+    <Delete Files="$(DockerfileOutput)" Condition="Exists('$(DockerfileOutput)')" />
+  </Target>
+
+</Project>
