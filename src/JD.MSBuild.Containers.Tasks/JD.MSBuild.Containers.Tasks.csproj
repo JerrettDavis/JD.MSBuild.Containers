@@ -24,6 +24,9 @@
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
     
+    <!-- Hashing for fingerprinting -->
+    <PackageReference Include="System.IO.Hashing" Version="9.0.0" />
+    
     <!-- JSON handling -->
     <PackageReference Include="System.Text.Json" Version="9.0.1" />
   </ItemGroup>
