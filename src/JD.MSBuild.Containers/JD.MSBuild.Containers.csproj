@@ -26,9 +26,6 @@
     <NoWarn>$(NoWarn);NU5128;NU5100</NoWarn>
     <GenerateDocumentationFile>false</GenerateDocumentationFile>
     <DevelopmentDependency>true</DevelopmentDependency>
-    
-    <!-- Disable symbols package for MSBuild SDK packages (no assemblies to include symbols from) -->
-    <IncludeSymbols>false</IncludeSymbols>
   </PropertyGroup>
 
   <ItemGroup>
