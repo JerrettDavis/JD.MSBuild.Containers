@@ -178,6 +178,16 @@ jobs:
           /p:AssemblyVersion=${{ env.ASSEMBLY_VERSION }}
           /p:FileVersion=${{ env.FILE_VERSION }}
           /p:PackageVersion=${{ env.PACKAGE_VERSION }}
+          || true
+
+      - name: Verify package was created
+        run: |
+          if [ ! -f ./artifacts/JD.MSBuild.Containers.${{ env.PACKAGE_VERSION }}.nupkg ]; then
+            echo "ERROR: Package file was not created"
+            exit 1
+          fi
+          echo "Package created successfully: ./artifacts/JD.MSBuild.Containers.${{ env.PACKAGE_VERSION }}.nupkg"
+          ls -lh ./artifacts/*.nupkg
 
       - name: Upload packages as artifact
         uses: actions/upload-artifact@v4
