@@ -19,15 +19,16 @@
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
-    <PackageType>Dependency</PackageType>
     
     <!-- Build Configuration -->
     <IncludeBuildOutput>false</IncludeBuildOutput>
     <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
     <NoWarn>$(NoWarn);NU5128;NU5100</NoWarn>
-    <MSBuildWarningsAsMessages>$(MSBuildWarningsAsMessages);NU5017</MSBuildWarningsAsMessages>
     <GenerateDocumentationFile>false</GenerateDocumentationFile>
     <DevelopmentDependency>true</DevelopmentDependency>
+    
+    <!-- Disable symbols package for MSBuild SDK packages (no assemblies to include symbols from) -->
+    <IncludeSymbols>false</IncludeSymbols>
   </PropertyGroup>
 
   <ItemGroup>
@@ -45,9 +46,6 @@
     NuGet folder behavior:
     - build/       -> Only direct PackageReference consumers
     - buildTransitive/ -> ALL consumers (direct and transitive)
-    
-    Note: We include a placeholder _._ file in lib/ to satisfy NuGet pack validation (NU5017).
-    This is a standard practice for MSBuild SDK packages that don't provide runtime assemblies.
   -->
   <ItemGroup>
     <None Include="buildTransitive/JD.MSBuild.Containers.props" Pack="true" PackagePath="build" />
@@ -71,6 +69,14 @@
       <None Include="../JD.MSBuild.Containers.Tasks/bin/$(Configuration)/net10.0/*.dll" Pack="true" PackagePath="tasks/net10.0" Condition="Exists('../JD.MSBuild.Containers.Tasks/bin/$(Configuration)/net10.0/JD.MSBuild.Containers.Tasks.dll')" />
       <None Include="../JD.MSBuild.Containers.Tasks/bin/$(Configuration)/net10.0/*.deps.json" Pack="true" PackagePath="tasks/net10.0" Condition="Exists('../JD.MSBuild.Containers.Tasks/bin/$(Configuration)/net10.0/JD.MSBuild.Containers.Tasks.dll')" />
     </ItemGroup>
+  </Target>
+
+  <!-- Force disable symbol packages for MSBuild SDK packages regardless of command line overrides -->
+  <Target Name="DisableSymbolPackage" BeforeTargets="GenerateNuspec">
+    <PropertyGroup>
+      <IncludeSymbols>false</IncludeSymbols>
+      <IncludeSource>false</IncludeSource>
+    </PropertyGroup>
   </Target>
 
 </Project>
