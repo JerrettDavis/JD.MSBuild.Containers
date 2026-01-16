@@ -3,7 +3,6 @@
   <PropertyGroup>
     <TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
     <IsPackable>true</IsPackable>
-    <MSBuildTreatWarningsAsErrors>false</MSBuildTreatWarningsAsErrors>
     
     <!-- Package Identity -->
     <PackageId>JD.MSBuild.Containers</PackageId>
@@ -24,10 +23,10 @@
     
     <!-- Build Configuration -->
     <IncludeBuildOutput>false</IncludeBuildOutput>
+    <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
     <NoWarn>$(NoWarn);NU5128;NU5100</NoWarn>
     <MSBuildWarningsAsMessages>$(MSBuildWarningsAsMessages);NU5017</MSBuildWarningsAsMessages>
     <GenerateDocumentationFile>false</GenerateDocumentationFile>
-    <NoPackageAnalysis>true</NoPackageAnalysis>
     <DevelopmentDependency>true</DevelopmentDependency>
   </PropertyGroup>
 
@@ -47,7 +46,7 @@
     - build/       -> Only direct PackageReference consumers
     - buildTransitive/ -> ALL consumers (direct and transitive)
     
-    Note: We include a placeholder _._  file in lib/ to satisfy NuGet pack validation (NU5017).
+    Note: We include a placeholder _._ file in lib/ to satisfy NuGet pack validation (NU5017).
     This is a standard practice for MSBuild SDK packages that don't provide runtime assemblies.
   -->
   <ItemGroup>
@@ -57,7 +56,7 @@
     <None Include="../../README.md" Pack="true" PackagePath="" />
     
     <!-- Placeholder file for lib folder to satisfy NuGet validation -->
-    <None Include="_._" Pack="true" PackagePath="lib/net8.0" />
+    <None Include="_._" Pack="true" PackagePath="lib/netstandard2.0" />
   </ItemGroup>
 
   <!-- Collect task assemblies from the referenced project after build -->
