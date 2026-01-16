@@ -1,0 +1,156 @@
+<Project>
+  <PropertyGroup>
+    <!--
+      Enablement: Disabled by default. Users opt-in by setting DockerEnabled=true.
+      
+      To enable Docker integration, set:
+        <DockerEnabled>true</DockerEnabled>
+    -->
+    <DockerEnabled Condition="'$(DockerEnabled)'==''">false</DockerEnabled>
+
+    <!--
+      Granular Feature Control: Each Docker workflow component can be independently enabled/disabled.
+      This provides fine-grained control over what the integration does.
+      
+      DockerGenerateDockerfile: Controls Dockerfile generation (default: true when DockerEnabled=true)
+      DockerBuildImage: Controls Docker image building (default: false, must opt-in)
+      DockerRunContainer: Controls Docker container execution (default: false, must opt-in)
+      DockerPushImage: Controls pushing to registry (default: false, must opt-in)
+      
+      Example configurations:
+      - Generate-only mode: <DockerGenerateDockerfile>true</DockerGenerateDockerfile> <DockerBuildImage>false</DockerBuildImage>
+      - Build-only mode: <DockerGenerateDockerfile>false</DockerGenerateDockerfile> <DockerBuildImage>true</DockerBuildImage>
+      - Full automation: <DockerGenerateDockerfile>true</DockerGenerateDockerfile> <DockerBuildImage>true</DockerBuildImage>
+    -->
+    <DockerGenerateDockerfile Condition="'$(DockerGenerateDockerfile)'=='' and '$(DockerEnabled)'=='true'">true</DockerGenerateDockerfile>
+    <DockerGenerateDockerfile Condition="'$(DockerGenerateDockerfile)'==''">false</DockerGenerateDockerfile>
+    
+    <DockerBuildImage Condition="'$(DockerBuildImage)'==''">false</DockerBuildImage>
+    <DockerRunContainer Condition="'$(DockerRunContainer)'==''">false</DockerRunContainer>
+    <DockerPushImage Condition="'$(DockerPushImage)'==''">false</DockerPushImage>
+
+    <!-- Output paths -->
+    <DockerOutput Condition="'$(DockerOutput)'==''">$(BaseIntermediateOutputPath)docker\</DockerOutput>
+    <DockerfileOutput Condition="'$(DockerfileOutput)'==''">$(MSBuildProjectDirectory)\Dockerfile</DockerfileOutput>
+    
+    <!-- Existing Dockerfile handling: Use existing Dockerfile if generation is disabled -->
+    <DockerfileSource Condition="'$(DockerfileSource)'==''">$(MSBuildProjectDirectory)\Dockerfile</DockerfileSource>
+    
+    <!-- Docker image configuration -->
+    <DockerImageName Condition="'$(DockerImageName)'==''">$(AssemblyName.ToLowerInvariant())</DockerImageName>
+    <DockerImageTag Condition="'$(DockerImageTag)'==''">latest</DockerImageTag>
+    <DockerRegistry Condition="'$(DockerRegistry)'==''"></DockerRegistry>
+    
+    <!-- Base image configuration -->
+    <DockerBaseImageRuntime Condition="'$(DockerBaseImageRuntime)'==''">mcr.microsoft.com/dotnet/aspnet</DockerBaseImageRuntime>
+    <DockerBaseImageSdk Condition="'$(DockerBaseImageSdk)'==''">mcr.microsoft.com/dotnet/sdk</DockerBaseImageSdk>
+    <DockerBaseImageVersion Condition="'$(DockerBaseImageVersion)'==''">$(TargetFrameworkVersion.TrimStart('v'))</DockerBaseImageVersion>
+    
+    <!-- Build context -->
+    <DockerBuildContext Condition="'$(DockerBuildContext)'==''">$(MSBuildProjectDirectory)</DockerBuildContext>
+    <DockerWorkDir Condition="'$(DockerWorkDir)'==''">/app</DockerWorkDir>
+    
+    <!-- Entrypoint and command configuration -->
+    <DockerEntrypoint Condition="'$(DockerEntrypoint)'==''"></DockerEntrypoint>
+    <DockerCmd Condition="'$(DockerCmd)'==''"></DockerCmd>
+    
+    <!-- Build arguments -->
+    <DockerBuildArgs Condition="'$(DockerBuildArgs)'==''"></DockerBuildArgs>
+    
+    <!-- Pre/Post build scripts -->
+    <DockerPreBuildScript Condition="'$(DockerPreBuildScript)'==''"></DockerPreBuildScript>
+    <DockerPostBuildScript Condition="'$(DockerPostBuildScript)'==''"></DockerPostBuildScript>
+    
+    <!-- Pre/Post publish scripts -->
+    <DockerPrePublishScript Condition="'$(DockerPrePublishScript)'==''"></DockerPrePublishScript>
+    <DockerPostPublishScript Condition="'$(DockerPostPublishScript)'==''"></DockerPostPublishScript>
+    
+    <!-- Hook Integration: Control when Docker operations execute during MSBuild lifecycle -->
+    <DockerGenerateOnBuild Condition="'$(DockerGenerateOnBuild)'=='' and '$(DockerGenerateDockerfile)'=='true'">true</DockerGenerateOnBuild>
+    <DockerGenerateOnBuild Condition="'$(DockerGenerateOnBuild)'==''">false</DockerGenerateOnBuild>
+    
+    <DockerBuildOnBuild Condition="'$(DockerBuildOnBuild)'=='' and '$(DockerBuildImage)'=='true'">false</DockerBuildOnBuild>
+    <DockerBuildOnBuild Condition="'$(DockerBuildOnBuild)'==''">false</DockerBuildOnBuild>
+    
+    <DockerBuildOnPublish Condition="'$(DockerBuildOnPublish)'=='' and '$(DockerBuildImage)'=='true'">true</DockerBuildOnPublish>
+    <DockerBuildOnPublish Condition="'$(DockerBuildOnPublish)'==''">false</DockerBuildOnPublish>
+    
+    <DockerRunOnBuild Condition="'$(DockerRunOnBuild)'=='' and '$(DockerRunContainer)'=='true'">false</DockerRunOnBuild>
+    <DockerRunOnBuild Condition="'$(DockerRunOnBuild)'==''">false</DockerRunOnBuild>
+    
+    <DockerPushOnPublish Condition="'$(DockerPushOnPublish)'=='' and '$(DockerPushImage)'=='true'">true</DockerPushOnPublish>
+    <DockerPushOnPublish Condition="'$(DockerPushOnPublish)'==''">false</DockerPushOnPublish>
+    
+    <!-- Docker build options -->
+    <DockerBuildPlatform Condition="'$(DockerBuildPlatform)'==''"></DockerBuildPlatform>
+    <DockerBuildTarget Condition="'$(DockerBuildTarget)'==''"></DockerBuildTarget>
+    
+    <!-- Port mappings for Docker run -->
+    <DockerPortMappings Condition="'$(DockerPortMappings)'==''"></DockerPortMappings>
+    <DockerEnvironmentVariables Condition="'$(DockerEnvironmentVariables)'==''"></DockerEnvironmentVariables>
+    <DockerVolumeMappings Condition="'$(DockerVolumeMappings)'==''"></DockerVolumeMappings>
+    
+    <!-- Multi-stage build configuration -->
+    <DockerUseMultiStage Condition="'$(DockerUseMultiStage)'==''">true</DockerUseMultiStage>
+    <DockerRestoreStage Condition="'$(DockerRestoreStage)'==''">restore</DockerRestoreStage>
+    <DockerBuildStage Condition="'$(DockerBuildStage)'==''">build</DockerBuildStage>
+    <DockerPublishStage Condition="'$(DockerPublishStage)'==''">publish</DockerPublishStage>
+    <DockerFinalStage Condition="'$(DockerFinalStage)'==''">final</DockerFinalStage>
+    
+    <!-- Project type detection -->
+    <DockerProjectType Condition="'$(DockerProjectType)'=='' and '$(OutputType)'=='Exe'">console</DockerProjectType>
+    <DockerProjectType Condition="'$(DockerProjectType)'=='' and '$(OutputType)'!='Exe'">library</DockerProjectType>
+    
+    <!-- Expose port (ASP.NET Core default) -->
+    <DockerExposePort Condition="'$(DockerExposePort)'=='' and $(DockerProjectType)=='console'">8080</DockerExposePort>
+    
+    <!-- Fingerprinting for incremental builds -->
+    <DockerFingerprintFile Condition="'$(DockerFingerprintFile)'==''">$(DockerOutput)fingerprint.txt</DockerFingerprintFile>
+    <DockerStampFile Condition="'$(DockerStampFile)'==''">$(DockerOutput).docker.stamp</DockerStampFile>
+    
+    <!-- Diagnostics -->
+    <DockerLogVerbosity Condition="'$(DockerLogVerbosity)'==''">minimal</DockerLogVerbosity>
+    <DockerDumpConfiguration Condition="'$(DockerDumpConfiguration)'==''">false</DockerDumpConfiguration>
+    
+    <!-- Docker command configuration -->
+    <DockerCommand Condition="'$(DockerCommand)'==''">docker</DockerCommand>
+    
+    <!-- NuGet restore configuration for Dockerfile -->
+    <DockerNuGetConfigPath Condition="'$(DockerNuGetConfigPath)'==''"></DockerNuGetConfigPath>
+    
+    <!-- Custom Dockerfile template path -->
+    <DockerTemplateFile Condition="'$(DockerTemplateFile)'==''"></DockerTemplateFile>
+    
+    <!-- Layer optimization -->
+    <DockerOptimizeLayers Condition="'$(DockerOptimizeLayers)'==''">true</DockerOptimizeLayers>
+    
+    <!-- Security scanning (optional integration) -->
+    <DockerScanImage Condition="'$(DockerScanImage)'==''">false</DockerScanImage>
+    
+    <!-- Container user configuration -->
+    <DockerUser Condition="'$(DockerUser)'==''">app</DockerUser>
+    <DockerCreateUser Condition="'$(DockerCreateUser)'==''">true</DockerCreateUser>
+    
+    <!--
+      Script Execution Control: Granular control over pre/post script execution.
+      Each script type can be independently enabled/disabled.
+    -->
+    <DockerExecutePreBuildScript Condition="'$(DockerExecutePreBuildScript)'=='' and '$(DockerPreBuildScript)'!=''">true</DockerExecutePreBuildScript>
+    <DockerExecutePreBuildScript Condition="'$(DockerExecutePreBuildScript)'==''">false</DockerExecutePreBuildScript>
+    
+    <DockerExecutePostBuildScript Condition="'$(DockerExecutePostBuildScript)'=='' and '$(DockerPostBuildScript)'!=''">true</DockerExecutePostBuildScript>
+    <DockerExecutePostBuildScript Condition="'$(DockerExecutePostBuildScript)'==''">false</DockerExecutePostBuildScript>
+    
+    <DockerExecutePrePublishScript Condition="'$(DockerExecutePrePublishScript)'=='' and '$(DockerPrePublishScript)'!=''">true</DockerExecutePrePublishScript>
+    <DockerExecutePrePublishScript Condition="'$(DockerExecutePrePublishScript)'==''">false</DockerExecutePrePublishScript>
+    
+    <DockerExecutePostPublishScript Condition="'$(DockerExecutePostPublishScript)'=='' and '$(DockerPostPublishScript)'!=''">true</DockerExecutePostPublishScript>
+    <DockerExecutePostPublishScript Condition="'$(DockerExecutePostPublishScript)'==''">false</DockerExecutePostPublishScript>
+    
+    <!--
+      Fingerprinting Control: Enable/disable incremental build optimization.
+      When disabled, Dockerfile is always regenerated on build.
+    -->
+    <DockerUseFingerprinting Condition="'$(DockerUseFingerprinting)'==''">true</DockerUseFingerprinting>
+  </PropertyGroup>
+</Project>
