@@ -4,6 +4,9 @@
 
 [![NuGet](https://img.shields.io/nuget/v/JD.MSBuild.Containers.svg)](https://www.nuget.org/packages/JD.MSBuild.Containers/)
 [![License](https://img.shields.io/github/license/jerrettdavis/JD.MSBuild.Containers.svg)](LICENSE)
+[![CI](https://github.com/JerrettDavis/JD.MSBuild.Containers/actions/workflows/ci.yml/badge.svg)](https://github.com/JerrettDavis/JD.MSBuild.Containers/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/JerrettDavis/JD.MSBuild.Containers/actions/workflows/codeql-analysis.yml/badge.svg)](https://github.com/JerrettDavis/JD.MSBuild.Containers/security/code-scanning)
+[![codecov](https://codecov.io/gh/JerrettDavis/JD.MSBuild.Containers/branch/main/graph/badge.svg)](https://codecov.io/gh/JerrettDavis/JD.MSBuild.Containers)
 
 Automate Docker containerization during `dotnet build`. Zero manual steps, full CI/CD support, reproducible container builds with granular control over every step of the process.
 
