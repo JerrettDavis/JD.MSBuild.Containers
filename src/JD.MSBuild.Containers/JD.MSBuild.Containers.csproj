@@ -19,12 +19,15 @@
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+    <PackageType>Dependency</PackageType>
     
     <!-- Build Configuration -->
     <IncludeBuildOutput>false</IncludeBuildOutput>
     <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
     <NoWarn>$(NoWarn);NU5128;NU5100</NoWarn>
+    <MSBuildWarningsAsMessages>$(MSBuildWarningsAsMessages);NU5017</MSBuildWarningsAsMessages>
     <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <DevelopmentDependency>true</DevelopmentDependency>
   </PropertyGroup>
 
   <ItemGroup>
@@ -42,12 +45,18 @@
     NuGet folder behavior:
     - build/       -> Only direct PackageReference consumers
     - buildTransitive/ -> ALL consumers (direct and transitive)
+    
+    Note: We include a placeholder _._ file in lib/ to satisfy NuGet pack validation (NU5017).
+    This is a standard practice for MSBuild SDK packages that don't provide runtime assemblies.
   -->
   <ItemGroup>
-    <Content Include="buildTransitive/JD.MSBuild.Containers.props" Pack="true" PackagePath="build" />
-    <Content Include="buildTransitive/JD.MSBuild.Containers.targets" Pack="true" PackagePath="build" />
+    <None Include="buildTransitive/JD.MSBuild.Containers.props" Pack="true" PackagePath="build" />
+    <None Include="buildTransitive/JD.MSBuild.Containers.targets" Pack="true" PackagePath="build" />
 
     <None Include="../../README.md" Pack="true" PackagePath="" />
+    
+    <!-- Placeholder file for lib folder to satisfy NuGet validation -->
+    <None Include="_._" Pack="true" PackagePath="lib/netstandard2.0" />
   </ItemGroup>
 
   <!-- Collect task assemblies from the referenced project after build -->
@@ -63,9 +72,5 @@
       <None Include="../JD.MSBuild.Containers.Tasks/bin/$(Configuration)/net10.0/*.deps.json" Pack="true" PackagePath="tasks/net10.0" Condition="Exists('../JD.MSBuild.Containers.Tasks/bin/$(Configuration)/net10.0/JD.MSBuild.Containers.Tasks.dll')" />
     </ItemGroup>
   </Target>
-
-  <ItemGroup>
-    <None Include="defaults/**/*.*" Pack="true" PackagePath="build/Defaults" />
-  </ItemGroup>
 
 </Project>
