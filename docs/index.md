@@ -42,8 +42,8 @@ Welcome to the **JD.MSBuild.Containers** documentation site. This library provid
 ### Reference
 
 - [API Reference](api/index.md) - Complete API documentation
-- [MSBuild Properties](api/) - All configurable properties
-- [MSBuild Tasks](api/) - Available MSBuild tasks
+- MSBuild Properties - See API Reference
+- MSBuild Tasks - See API Reference
 
 ## Quick Start Example
 
