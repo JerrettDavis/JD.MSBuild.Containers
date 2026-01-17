@@ -399,3 +399,20 @@ FodyWeavers.xsd
 
 # Test assets
 **/TestResults/
+
+# Local NuGet feed
+local-nuget/
+*.local.nupkg
+
+# DocFX
+docs/_site/
+docs/api/
+docs/obj/
+
+# Docker artifacts
+**/Dockerfile
+!samples/**/Dockerfile.reference
+.docker.stamp
+
+# Sample artifacts
+samples/**/data/

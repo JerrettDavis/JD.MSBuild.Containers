@@ -20,7 +20,6 @@ public abstract class DockerTaskBase : MSBuildTask
     /// One of: "quiet", "minimal", "normal", "detailed", "diagnostic".
     /// Default is "minimal".
     /// </value>
-    [Required]
     public string LogVerbosity { get; set; } = "minimal";
 
     /// <summary>

@@ -61,34 +61,19 @@
           Condition="'$(DockerEnabled)' == 'true' and '$(DockerGenerateDockerfile)' == 'true'">
     <ResolveDockerInputs
         ProjectPath="$(MSBuildProjectFullPath)"
-        ProjectDirectory="$(MSBuildProjectDirectory)"
         AssemblyName="$(AssemblyName)"
         TargetFramework="$(TargetFramework)"
-        TargetFrameworkVersion="$(TargetFrameworkVersion)"
         OutputType="$(OutputType)"
         RuntimeIdentifier="$(RuntimeIdentifier)"
-        SelfContained="$(SelfContained)"
-        PublishSingleFile="$(PublishSingleFile)"
-        PublishTrimmed="$(PublishTrimmed)"
-        Configuration="$(Configuration)"
         OutputPath="$(OutputPath)"
-        ProjectReferences="@(ProjectReference)"
         PackageReferences="@(PackageReference)"
-        DockerProjectType="$(DockerProjectType)"
-        DockerBaseImageRuntime="$(DockerBaseImageRuntime)"
-        DockerBaseImageSdk="$(DockerBaseImageSdk)"
-        DockerBaseImageVersion="$(DockerBaseImageVersion)"
-        DockerWorkDir="$(DockerWorkDir)"
-        DockerExposePort="$(DockerExposePort)"
-        DockerEntrypoint="$(DockerEntrypoint)"
-        DockerCmd="$(DockerCmd)"
-        LogVerbosity="$(DockerLogVerbosity)">
-      <Output TaskParameter="ResolvedProjectType" PropertyName="_DockerResolvedProjectType" />
-      <Output TaskParameter="ResolvedBaseImageRuntime" PropertyName="_DockerResolvedBaseImageRuntime" />
-      <Output TaskParameter="ResolvedBaseImageSdk" PropertyName="_DockerResolvedBaseImageSdk" />
-      <Output TaskParameter="ResolvedEntrypoint" PropertyName="_DockerResolvedEntrypoint" />
-      <Output TaskParameter="ResolvedCmd" PropertyName="_DockerResolvedCmd" />
-      <Output TaskParameter="ResolvedExposePort" PropertyName="_DockerResolvedExposePort" />
+        IsWebApplication="$([System.Convert]::ToBoolean('$(UsingMicrosoftNETSdkWeb)'))">
+      <Output TaskParameter="ProjectType" PropertyName="_DockerResolvedProjectType" />
+      <Output TaskParameter="BaseImage" PropertyName="_DockerResolvedBaseImageRuntime" />
+      <Output TaskParameter="SdkImage" PropertyName="_DockerResolvedBaseImageSdk" />
+      <Output TaskParameter="EntryPoint" PropertyName="_DockerResolvedEntrypoint" />
+      <Output TaskParameter="WorkingDirectory" PropertyName="_DockerResolvedWorkDir" />
+      <Output TaskParameter="ExposedPorts" PropertyName="_DockerResolvedExposePort" />
     </ResolveDockerInputs>
   </Target>
 

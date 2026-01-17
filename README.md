@@ -363,6 +363,17 @@ You can define custom targets that depend on or extend these hooks:
 | Custom templates | ✅ | ❌ | N/A |
 | Multi-stage support | ✅ | ❌ | ✅ |
 
+## Code Coverage
+
+This project maintains comprehensive code coverage with automated reporting:
+
+- 📊 **Coverage reports** generated on every PR
+- 📈 **Historical tracking** via [Codecov](https://codecov.io/gh/JerrettDavis/JD.MSBuild.Containers)
+- 💬 **PR comments** with coverage summaries
+- 📦 **HTML reports** available as CI artifacts
+
+See [CODE_COVERAGE.md](CODE_COVERAGE.md) for detailed configuration and usage.
+
 ## Contributing
 
 Contributions are welcome! Please open an issue first to discuss changes.
