@@ -1,0 +1,20 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    
+    <!-- Docker Configuration -->
+    <DockerImageName>console-app-sample</DockerImageName>
+    <DockerImageTag>latest</DockerImageTag>
+    <DockerProjectType>console</DockerProjectType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Reference the local NuGet package -->
+    <PackageReference Include="JD.MSBuild.Containers" Version="*" />
+  </ItemGroup>
+
+</Project>

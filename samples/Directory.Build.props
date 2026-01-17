@@ -1,0 +1,24 @@
+<Project>
+  <PropertyGroup>
+    <!-- Shared configuration for all samples -->
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    
+    <!-- Samples are not packable -->
+    <IsPackable>false</IsPackable>
+    
+    <!-- Use local NuGet feed for JD.MSBuild.Containers -->
+    <RestoreAdditionalProjectSources>$(MSBuildThisFileDirectory)../local-nuget</RestoreAdditionalProjectSources>
+    
+    <!-- Docker integration enabled by default for all samples -->
+    <DockerEnabled>true</DockerEnabled>
+    <DockerGenerateDockerfile>true</DockerGenerateDockerfile>
+    
+    <!-- Samples metadata -->
+    <Authors>Jerrett Davis</Authors>
+    <Company>JDH Productions</Company>
+    <Copyright>Copyright (c) $([System.DateTime]::Now.Year) Jerrett Davis</Copyright>
+  </PropertyGroup>
+</Project>
