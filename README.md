@@ -7,8 +7,19 @@
 [![CI](https://github.com/JerrettDavis/JD.MSBuild.Containers/actions/workflows/ci.yml/badge.svg)](https://github.com/JerrettDavis/JD.MSBuild.Containers/actions/workflows/ci.yml)
 [![CodeQL](https://github.com/JerrettDavis/JD.MSBuild.Containers/actions/workflows/codeql-analysis.yml/badge.svg)](https://github.com/JerrettDavis/JD.MSBuild.Containers/security/code-scanning)
 [![codecov](https://codecov.io/gh/JerrettDavis/JD.MSBuild.Containers/branch/main/graph/badge.svg)](https://codecov.io/gh/JerrettDavis/JD.MSBuild.Containers)
+[![Documentation](https://img.shields.io/badge/docs-online-blue)](https://jerrettdavis.github.io/JD.MSBuild.Containers/)
 
 Automate Docker containerization during `dotnet build`. Zero manual steps, full CI/CD support, reproducible container builds with granular control over every step of the process.
+
+## 📚 Documentation
+
+**[View Complete Documentation](https://jerrettdavis.github.io/JD.MSBuild.Containers/)**
+
+- [Introduction](https://jerrettdavis.github.io/JD.MSBuild.Containers/articles/introduction.html) - Project overview and architecture
+- [Getting Started](https://jerrettdavis.github.io/JD.MSBuild.Containers/articles/getting-started.html) - Installation and quick start guide
+- [Tutorials](https://jerrettdavis.github.io/JD.MSBuild.Containers/tutorials/tutorial-basic.html) - Step-by-step walkthroughs
+- [API Reference](https://jerrettdavis.github.io/JD.MSBuild.Containers/api/) - Complete property and task reference
+- [Samples](https://jerrettdavis.github.io/JD.MSBuild.Containers/samples/sample-overview.html) - Working example projects
 
 ## Quick Start
 

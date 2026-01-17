@@ -1,0 +1,44 @@
+- name: Home
+  href: index.md
+
+- name: Introduction
+  href: articles/introduction.md
+
+- name: Getting Started
+  href: articles/getting-started.md
+
+- name: Concepts
+  items:
+    - name: What is JD.MSBuild.Containers?
+      href: articles/concepts.md
+    - name: Core Concepts
+      href: articles/concepts.md#core-concepts
+
+- name: Workflows
+  href: articles/workflows.md
+
+- name: Tutorials
+  items:
+    - name: Basic Tutorial
+      href: tutorials/tutorial-basic.md
+    - name: Advanced Tutorial
+      href: tutorials/tutorial-advanced.md
+
+- name: Samples
+  items:
+    - name: Sample Overview
+      href: samples/sample-overview.md
+    - name: Web API Sample
+      href: samples/sample-webapi.md
+    - name: Web App Sample
+      href: samples/sample-webapp.md
+    - name: Worker Sample
+      href: samples/sample-worker.md
+    - name: Console App Sample
+      href: samples/sample-console.md
+
+- name: API Reference
+  href: api/index.md
+
+- name: Best Practices
+  href: articles/best-practices.md

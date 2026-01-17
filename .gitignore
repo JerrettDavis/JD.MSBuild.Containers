@@ -407,6 +407,7 @@ local-nuget/
 # DocFX
 docs/_site/
 docs/api/
+!docs/api/index.md
 docs/obj/
 
 # Docker artifacts
