@@ -77,15 +77,15 @@
   </Target>
 
   <!-- Copy generated MSBuild files from Definition project before pack -->
-  <Target Name="CopyGeneratedMSBuildFiles" BeforeTargets="_GetPackageFiles" AfterTargets="Build">
+  <Target Name="CopyGeneratedMSBuildFiles" BeforeTargets="_GetPackageFiles">
     <PropertyGroup>
       <_DefinitionProjectDir>$(MSBuildThisFileDirectory)..\JD.MSBuild.Containers.Definition\</_DefinitionProjectDir>
     </PropertyGroup>
     
-    <!-- Build the Definition project to trigger generation -->
+    <!-- Build the Definition project once (net8.0 only) to trigger generation -->
     <MSBuild Projects="$(_DefinitionProjectDir)JD.MSBuild.Containers.Definition.csproj"
              Targets="Build"
-             Properties="Configuration=$(Configuration)" />
+             Properties="Configuration=$(Configuration);TargetFramework=net8.0" />
     
     <!-- Copy generated files to our buildTransitive folder -->
     <ItemGroup>
