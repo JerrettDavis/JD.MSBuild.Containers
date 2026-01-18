@@ -449,16 +449,16 @@ public static class DefinitionFactory
             target.Task("ComputeDockerFingerprint", task =>
             {
                 task.Param("ProjectPath", "$(MSBuildProjectFullPath)");
-                task.Param("Configuration", "$(Configuration)");
+                task.Param("ProjectDirectory", "$(MSBuildProjectDirectory)");
+                task.Param("DockerfilePath", "$(DockerfileOutput)");
                 task.Param("TargetFramework", "$(TargetFramework)");
-                task.Param("DockerBaseImageRuntime", "$(_DockerResolvedBaseImageRuntime)");
-                task.Param("DockerBaseImageSdk", "$(_DockerResolvedBaseImageSdk)");
-                task.Param("DockerEntrypoint", "$(_DockerResolvedEntrypoint)");
-                task.Param("DockerCmd", "$(_DockerResolvedCmd)");
-                task.Param("DockerBuildArgs", "$(DockerBuildArgs)");
-                task.Param("DockerTemplateFile", "$(DockerTemplateFile)");
+                task.Param("Configuration", "$(Configuration)");
+                task.Param("BaseImage", "$(_DockerResolvedBaseImageRuntime)");
+                task.Param("SdkImage", "$(_DockerResolvedBaseImageSdk)");
+                task.Param("PackageReferences", "@(PackageReference)");
+                task.Param("EnvironmentVariables", "$(DockerEnvironmentVariables)");
                 task.Param("FingerprintFile", "$(DockerFingerprintFile)");
-                task.Param("LogVerbosity", "$(DockerLogVerbosity)");
+                task.Param("IncludeGeneratedFiles", "false");
                 task.OutputProperty("Fingerprint", "_DockerFingerprint");
                 task.OutputProperty("HasChanged", "_DockerFingerprintChanged");
             });
@@ -476,28 +476,16 @@ public static class DefinitionFactory
             target.Task("GenerateDockerfile", task =>
             {
                 task.Param("ProjectPath", "$(MSBuildProjectFullPath)");
-                task.Param("ProjectDirectory", "$(MSBuildProjectDirectory)");
-                task.Param("AssemblyName", "$(AssemblyName)");
-                task.Param("TargetFramework", "$(TargetFramework)");
                 task.Param("ProjectType", "$(_DockerResolvedProjectType)");
-                task.Param("BaseImageRuntime", "$(_DockerResolvedBaseImageRuntime)");
-                task.Param("BaseImageSdk", "$(_DockerResolvedBaseImageSdk)");
-                task.Param("WorkDir", "$(DockerWorkDir)");
-                task.Param("ExposePort", "$(_DockerResolvedExposePort)");
-                task.Param("Entrypoint", "$(_DockerResolvedEntrypoint)");
-                task.Param("Cmd", "$(_DockerResolvedCmd)");
-                task.Param("UseMultiStage", "$(DockerUseMultiStage)");
-                task.Param("RestoreStage", "$(DockerRestoreStage)");
-                task.Param("BuildStage", "$(DockerBuildStage)");
-                task.Param("PublishStage", "$(DockerPublishStage)");
-                task.Param("FinalStage", "$(DockerFinalStage)");
-                task.Param("OptimizeLayers", "$(DockerOptimizeLayers)");
-                task.Param("CreateUser", "$(DockerCreateUser)");
-                task.Param("User", "$(DockerUser)");
-                task.Param("NuGetConfigPath", "$(DockerNuGetConfigPath)");
-                task.Param("TemplateFile", "$(DockerTemplateFile)");
-                task.Param("OutputFile", "$(DockerfileOutput)");
-                task.Param("LogVerbosity", "$(DockerLogVerbosity)");
+                task.Param("BaseImage", "$(_DockerResolvedBaseImageRuntime)");
+                task.Param("SdkImage", "$(_DockerResolvedBaseImageSdk)");
+                task.Param("AssemblyName", "$(AssemblyName)");
+                task.Param("WorkingDirectory", "$(DockerWorkDir)");
+                task.Param("ExposedPorts", "$(_DockerResolvedExposePort)");
+                task.Param("EnvironmentVariables", "$(DockerEnvironmentVariables)");
+                task.Param("OutputPath", "$(DockerfileOutput)");
+                task.Param("TargetFramework", "$(TargetFramework)");
+                task.Param("GenerateDockerIgnore", "true");
             });
 
             target.Task("WriteLinesToFile", task =>
@@ -539,7 +527,6 @@ public static class DefinitionFactory
             {
                 task.Param("ScriptPath", "$(DockerPreBuildScript)");
                 task.Param("WorkingDirectory", "$(MSBuildProjectDirectory)");
-                task.Param("LogVerbosity", "$(DockerLogVerbosity)");
             });
 
             target.Message("Executed pre-build script: $(DockerPreBuildScript)", importance: "High");
@@ -594,23 +581,28 @@ public static class DefinitionFactory
             {
                 group.Property("_DockerfilePath", "$(DockerfileOutput)");
             });
+            
+            // Compute full image tag (registry/name:tag)
+            target.PropertyGroup("'$(DockerRegistry)' != ''", group =>
+            {
+                group.Property("_DockerImageTag", "$(DockerRegistry)/$(DockerImageName):$(DockerImageTag)");
+            });
+            target.PropertyGroup("'$(_DockerImageTag)' == ''", group =>
+            {
+                group.Property("_DockerImageTag", "$(DockerImageName):$(DockerImageTag)");
+            });
 
             target.Task("ExecuteDockerBuild", task =>
             {
-                task.Param("DockerCommand", "$(DockerCommand)");
                 task.Param("DockerfilePath", "$(_DockerfilePath)");
                 task.Param("BuildContext", "$(DockerBuildContext)");
-                task.Param("ImageName", "$(DockerImageName)");
-                task.Param("ImageTag", "$(DockerImageTag)");
-                task.Param("Registry", "$(DockerRegistry)");
+                task.Param("ImageTag", "$(_DockerImageTag)");
                 task.Param("BuildArgs", "$(DockerBuildArgs)");
                 task.Param("Platform", "$(DockerBuildPlatform)");
                 task.Param("Target", "$(DockerBuildTarget)");
-                task.Param("LogVerbosity", "$(DockerLogVerbosity)");
-                task.OutputProperty("ImageId", "_DockerImageId");
             });
 
-            target.Message("Docker image built: $(DockerImageName):$(DockerImageTag) (ID: $(_DockerImageId))", importance: "High");
+            target.Message("Docker image built: $(_DockerImageTag)", importance: "High");
         });
 
         // Post-build script execution
@@ -623,7 +615,6 @@ public static class DefinitionFactory
             {
                 task.Param("ScriptPath", "$(DockerPostBuildScript)");
                 task.Param("WorkingDirectory", "$(MSBuildProjectDirectory)");
-                task.Param("LogVerbosity", "$(DockerLogVerbosity)");
             });
 
             target.Message("Executed post-build script: $(DockerPostBuildScript)", importance: "High");
@@ -655,18 +646,13 @@ public static class DefinitionFactory
 
             target.Task("ExecuteDockerRun", task =>
             {
-                task.Param("DockerCommand", "$(DockerCommand)");
-                task.Param("ImageName", "$(DockerImageName)");
-                task.Param("ImageTag", "$(DockerImageTag)");
-                task.Param("Registry", "$(DockerRegistry)");
+                task.Param("ImageTag", "$(_DockerImageTag)");
                 task.Param("PortMappings", "$(DockerPortMappings)");
                 task.Param("EnvironmentVariables", "$(DockerEnvironmentVariables)");
-                task.Param("VolumeMappings", "$(DockerVolumeMappings)");
-                task.Param("LogVerbosity", "$(DockerLogVerbosity)");
-                task.OutputProperty("ContainerId", "_DockerContainerId");
+                task.Param("VolumeMounts", "$(DockerVolumeMappings)");
             });
 
-            target.Message("Docker container started: $(_DockerContainerId)", importance: "High");
+            target.Message("Docker container started successfully", importance: "High");
         });
 
         // Lifecycle hook: AfterDockerRun
@@ -689,7 +675,6 @@ public static class DefinitionFactory
             {
                 task.Param("ScriptPath", "$(DockerPrePublishScript)");
                 task.Param("WorkingDirectory", "$(MSBuildProjectDirectory)");
-                task.Param("LogVerbosity", "$(DockerLogVerbosity)");
             });
 
             target.Message("Executed pre-publish script: $(DockerPrePublishScript)", importance: "High");
@@ -735,23 +720,28 @@ public static class DefinitionFactory
             {
                 group.Property("_DockerfilePath", "$(DockerfileOutput)");
             });
+            
+            // Compute full image tag (registry/name:tag)
+            target.PropertyGroup("'$(DockerRegistry)' != ''", group =>
+            {
+                group.Property("_DockerImageTag", "$(DockerRegistry)/$(DockerImageName):$(DockerImageTag)");
+            });
+            target.PropertyGroup("'$(_DockerImageTag)' == ''", group =>
+            {
+                group.Property("_DockerImageTag", "$(DockerImageName):$(DockerImageTag)");
+            });
 
             target.Task("ExecuteDockerBuild", task =>
             {
-                task.Param("DockerCommand", "$(DockerCommand)");
                 task.Param("DockerfilePath", "$(_DockerfilePath)");
                 task.Param("BuildContext", "$(DockerBuildContext)");
-                task.Param("ImageName", "$(DockerImageName)");
-                task.Param("ImageTag", "$(DockerImageTag)");
-                task.Param("Registry", "$(DockerRegistry)");
+                task.Param("ImageTag", "$(_DockerImageTag)");
                 task.Param("BuildArgs", "$(DockerBuildArgs)");
                 task.Param("Platform", "$(DockerBuildPlatform)");
                 task.Param("Target", "$(DockerBuildTarget)");
-                task.Param("LogVerbosity", "$(DockerLogVerbosity)");
-                task.OutputProperty("ImageId", "_DockerPublishImageId");
             });
 
-            target.Message("Docker image published: $(DockerImageName):$(DockerImageTag) (ID: $(_DockerPublishImageId))", importance: "High");
+            target.Message("Docker image published: $(_DockerImageTag)", importance: "High");
         });
 
         // Post-publish script execution
@@ -764,7 +754,6 @@ public static class DefinitionFactory
             {
                 task.Param("ScriptPath", "$(DockerPostPublishScript)");
                 task.Param("WorkingDirectory", "$(MSBuildProjectDirectory)");
-                task.Param("LogVerbosity", "$(DockerLogVerbosity)");
             });
 
             target.Message("Executed post-publish script: $(DockerPostPublishScript)", importance: "High");
