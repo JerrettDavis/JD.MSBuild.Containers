@@ -33,10 +33,6 @@
                       ReferenceOutputAssembly="false"
                       PrivateAssets="All"
                       IncludeAssets="None" />
-    <ProjectReference Include="../JD.MSBuild.Containers.Definition/JD.MSBuild.Containers.Definition.csproj"
-                      ReferenceOutputAssembly="false"
-                      PrivateAssets="All"
-                      IncludeAssets="None" />
   </ItemGroup>
 
   <!--
@@ -80,38 +76,31 @@
     </PropertyGroup>
   </Target>
 
-  <!-- Generate MSBuild files from fluent definition -->
-  <!-- Call this manually: dotnet build /t:GenerateMSBuildFiles -->
-  <Target Name="GenerateMSBuildFiles">
+  <!-- Copy generated MSBuild files from Definition project before pack -->
+  <Target Name="CopyGeneratedMSBuildFiles" BeforeTargets="_GetPackageFiles" AfterTargets="Build">
     <PropertyGroup>
-      <DefinitionAssembly>$(MSBuildThisFileDirectory)..\JD.MSBuild.Containers.Definition\bin\$(Configuration)\net8.0\JD.MSBuild.Containers.Definition.dll</DefinitionAssembly>
-      <TempOutputPath>$(MSBuildThisFileDirectory)..\..\obj\msbuild_generated\</TempOutputPath>
+      <_DefinitionProjectDir>$(MSBuildThisFileDirectory)..\JD.MSBuild.Containers.Definition\</_DefinitionProjectDir>
     </PropertyGroup>
     
-    <Message Text="Generating MSBuild files from fluent definition..." Importance="high" />
-    
-    <!-- Ensure the definition project is built first -->
-    <MSBuild Projects="$(MSBuildThisFileDirectory)..\JD.MSBuild.Containers.Definition\JD.MSBuild.Containers.Definition.csproj"
+    <!-- Build the Definition project to trigger generation -->
+    <MSBuild Projects="$(_DefinitionProjectDir)JD.MSBuild.Containers.Definition.csproj"
              Targets="Build"
-             Properties="Configuration=$(Configuration);TargetFramework=net8.0" />
+             Properties="Configuration=$(Configuration)" />
     
-    <!-- Generate the MSBuild files using dotnet tool -->
-    <Exec Command="dotnet tool restore" WorkingDirectory="$(MSBuildThisFileDirectory)..\.." />
-    <Exec Command="dotnet tool run jdmsbuild generate --assembly &quot;$(DefinitionAssembly)&quot; --type JD.MSBuild.Containers.Definition.DefinitionFactory --method Create --output &quot;$(TempOutputPath)&quot;"
-          WorkingDirectory="$(MSBuildThisFileDirectory)..\.." />
+    <!-- Copy generated files to our buildTransitive folder -->
+    <ItemGroup>
+      <_DefinitionGeneratedFiles Include="$(_DefinitionProjectDir)buildTransitive\*.props" />
+      <_DefinitionGeneratedFiles Include="$(_DefinitionProjectDir)buildTransitive\*.targets" />
+    </ItemGroup>
     
-    <!-- Copy generated files to buildTransitive -->
-    <Copy SourceFiles="$(TempOutputPath)buildTransitive\JD.MSBuild.Containers.props"
+    <Copy SourceFiles="@(_DefinitionGeneratedFiles)"
           DestinationFolder="$(MSBuildThisFileDirectory)buildTransitive"
-          SkipUnchangedFiles="false" />
-    <Copy SourceFiles="$(TempOutputPath)buildTransitive\JD.MSBuild.Containers.targets"
-          DestinationFolder="$(MSBuildThisFileDirectory)buildTransitive"
-          SkipUnchangedFiles="false" />
+          SkipUnchangedFiles="true"
+          Condition="'@(_DefinitionGeneratedFiles)' != ''" />
     
-    <!-- Clean up temp folder -->
-    <RemoveDir Directories="$(TempOutputPath)" />
-    
-    <Message Text="MSBuild files generated successfully at: $(MSBuildThisFileDirectory)buildTransitive" Importance="high" />
+    <Message Text="Copied @(_DefinitionGeneratedFiles->Count()) generated file(s) from Definition project"
+             Importance="High"
+             Condition="'@(_DefinitionGeneratedFiles)' != ''" />
   </Target>
 
 </Project>
