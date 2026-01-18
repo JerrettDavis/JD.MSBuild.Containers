@@ -80,17 +80,26 @@
   <Target Name="CopyGeneratedMSBuildFiles" BeforeTargets="_GetPackageFiles">
     <PropertyGroup>
       <_DefinitionProjectDir>$(MSBuildThisFileDirectory)..\JD.MSBuild.Containers.Definition\</_DefinitionProjectDir>
+      <_DefinitionAssembly>$(_DefinitionProjectDir)bin\$(Configuration)\net8.0\JD.MSBuild.Containers.Definition.dll</_DefinitionAssembly>
+      <_TempOutputPath>$(MSBuildThisFileDirectory)..\..\obj\msbuild_fluent_generated</_TempOutputPath>
     </PropertyGroup>
     
-    <!-- Build the Definition project once (net8.0 only) to trigger generation -->
+    <!-- Build the Definition project once (net8.0 only) -->
     <MSBuild Projects="$(_DefinitionProjectDir)JD.MSBuild.Containers.Definition.csproj"
              Targets="Build"
              Properties="Configuration=$(Configuration);TargetFramework=net8.0" />
     
+    <!-- Restore tools -->
+    <Exec Command="dotnet tool restore" WorkingDirectory="$(MSBuildThisFileDirectory)..\.." />
+    
+    <!-- Generate using CLI (avoids assembly loading conflicts) -->
+    <Exec Command="dotnet tool run jdmsbuild generate --assembly &quot;$(_DefinitionAssembly)&quot; --type JD.MSBuild.Containers.Definition.DefinitionFactory --method Create --output &quot;$(_TempOutputPath)&quot;"
+          WorkingDirectory="$(MSBuildThisFileDirectory)..\.." />
+    
     <!-- Copy generated files to our buildTransitive folder -->
     <ItemGroup>
-      <_DefinitionGeneratedFiles Include="$(_DefinitionProjectDir)buildTransitive\*.props" />
-      <_DefinitionGeneratedFiles Include="$(_DefinitionProjectDir)buildTransitive\*.targets" />
+      <_DefinitionGeneratedFiles Include="$(_TempOutputPath)\buildTransitive\*.props" />
+      <_DefinitionGeneratedFiles Include="$(_TempOutputPath)\buildTransitive\*.targets" />
     </ItemGroup>
     
     <Copy SourceFiles="@(_DefinitionGeneratedFiles)"
@@ -98,7 +107,10 @@
           SkipUnchangedFiles="true"
           Condition="'@(_DefinitionGeneratedFiles)' != ''" />
     
-    <Message Text="Copied @(_DefinitionGeneratedFiles->Count()) generated file(s) from Definition project"
+    <!-- Cleanup -->
+    <RemoveDir Directories="$(_TempOutputPath)" />
+    
+    <Message Text="Generated and copied @(_DefinitionGeneratedFiles->Count()) MSBuild file(s)"
              Importance="High"
              Condition="'@(_DefinitionGeneratedFiles)' != ''" />
   </Target>
