@@ -5,6 +5,9 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     
+    <!-- This is a build-time only project, not a distributable package -->
+    <IsPackable>false</IsPackable>
+    
     <!-- Disable automatic generation to avoid assembly loading conflicts in CI -->
     <JDMSBuildFluentGenerateEnabled>false</JDMSBuildFluentGenerateEnabled>
   </PropertyGroup>

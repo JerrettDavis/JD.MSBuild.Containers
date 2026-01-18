@@ -84,11 +84,6 @@
       <_TempOutputPath>$(MSBuildThisFileDirectory)..\..\obj\msbuild_fluent_generated</_TempOutputPath>
     </PropertyGroup>
     
-    <!-- Build the Definition project once (net8.0 only) -->
-    <MSBuild Projects="$(_DefinitionProjectDir)JD.MSBuild.Containers.Definition.csproj"
-             Targets="Build"
-             Properties="Configuration=$(Configuration);TargetFramework=net8.0" />
-    
     <!-- Restore tools -->
     <Exec Command="dotnet tool restore" WorkingDirectory="$(MSBuildThisFileDirectory)..\.." />
     
