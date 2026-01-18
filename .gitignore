@@ -417,3 +417,7 @@ docs/obj/
 
 # Sample artifacts
 samples/**/data/
+
+# Generated MSBuild files (regenerated from JD.MSBuild.Fluent definition)
+src/JD.MSBuild.Containers/buildTransitive/JD.MSBuild.Containers.props
+src/JD.MSBuild.Containers/buildTransitive/JD.MSBuild.Containers.targets

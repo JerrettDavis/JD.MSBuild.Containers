@@ -1,0 +1,18 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    
+    <!-- JD.MSBuild.Fluent automatic generation settings -->
+    <JDMSBuildFluentDefinitionType>JD.MSBuild.Containers.Definition.DefinitionFactory</JDMSBuildFluentDefinitionType>
+    <JDMSBuildFluentDefinitionMethod>Create</JDMSBuildFluentDefinitionMethod>
+    <JDMSBuildFluentOutputPath>$(MSBuildProjectDirectory)\..\JD.MSBuild.Containers</JDMSBuildFluentOutputPath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="JD.MSBuild.Fluent" Version="0.2.0" />
+  </ItemGroup>
+
+</Project>

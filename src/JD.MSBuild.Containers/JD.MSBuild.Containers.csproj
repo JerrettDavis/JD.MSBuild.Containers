@@ -33,6 +33,10 @@
                       ReferenceOutputAssembly="false"
                       PrivateAssets="All"
                       IncludeAssets="None" />
+    <ProjectReference Include="../JD.MSBuild.Containers.Definition/JD.MSBuild.Containers.Definition.csproj"
+                      ReferenceOutputAssembly="false"
+                      PrivateAssets="All"
+                      IncludeAssets="None" />
   </ItemGroup>
 
   <!--
@@ -74,6 +78,40 @@
       <IncludeSymbols>false</IncludeSymbols>
       <IncludeSource>false</IncludeSource>
     </PropertyGroup>
+  </Target>
+
+  <!-- Generate MSBuild files from fluent definition -->
+  <!-- Call this manually: dotnet build /t:GenerateMSBuildFiles -->
+  <Target Name="GenerateMSBuildFiles">
+    <PropertyGroup>
+      <DefinitionAssembly>$(MSBuildThisFileDirectory)..\JD.MSBuild.Containers.Definition\bin\$(Configuration)\net8.0\JD.MSBuild.Containers.Definition.dll</DefinitionAssembly>
+      <TempOutputPath>$(MSBuildThisFileDirectory)..\..\obj\msbuild_generated\</TempOutputPath>
+    </PropertyGroup>
+    
+    <Message Text="Generating MSBuild files from fluent definition..." Importance="high" />
+    
+    <!-- Ensure the definition project is built first -->
+    <MSBuild Projects="$(MSBuildThisFileDirectory)..\JD.MSBuild.Containers.Definition\JD.MSBuild.Containers.Definition.csproj"
+             Targets="Build"
+             Properties="Configuration=$(Configuration);TargetFramework=net8.0" />
+    
+    <!-- Generate the MSBuild files using dotnet tool -->
+    <Exec Command="dotnet tool restore" WorkingDirectory="$(MSBuildThisFileDirectory)..\.." />
+    <Exec Command="dotnet tool run jdmsbuild generate --assembly &quot;$(DefinitionAssembly)&quot; --type JD.MSBuild.Containers.Definition.DefinitionFactory --method Create --output &quot;$(TempOutputPath)&quot;"
+          WorkingDirectory="$(MSBuildThisFileDirectory)..\.." />
+    
+    <!-- Copy generated files to buildTransitive -->
+    <Copy SourceFiles="$(TempOutputPath)buildTransitive\JD.MSBuild.Containers.props"
+          DestinationFolder="$(MSBuildThisFileDirectory)buildTransitive"
+          SkipUnchangedFiles="false" />
+    <Copy SourceFiles="$(TempOutputPath)buildTransitive\JD.MSBuild.Containers.targets"
+          DestinationFolder="$(MSBuildThisFileDirectory)buildTransitive"
+          SkipUnchangedFiles="false" />
+    
+    <!-- Clean up temp folder -->
+    <RemoveDir Directories="$(TempOutputPath)" />
+    
+    <Message Text="MSBuild files generated successfully at: $(MSBuildThisFileDirectory)buildTransitive" Importance="high" />
   </Target>
 
 </Project>
