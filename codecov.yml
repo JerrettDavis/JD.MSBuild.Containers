@@ -15,5 +15,3 @@ coverage:
 ignore:
   - "**/*.Tests/**"
   - "**/*Tests*/**"
-  - "**/*.runsettings"
-  - "**/TestResults/**"

@@ -49,9 +49,9 @@ jobs:
             --configuration Release \
             --no-build \
             --collect:"XPlat Code Coverage" \
-            --settings codecov.runsettings \
-            --results-directory ./TestResults \
-            --logger "trx;LogFileName=test-results.trx"
+            -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=cobertura \
+            -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Include="[JD.MSBuild.Containers*]*" \
+            -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Exclude="[*Tests]*"
 
       - name: Install ReportGenerator
         run: dotnet tool update -g dotnet-reportgenerator-globaltool
@@ -92,13 +92,13 @@ jobs:
             ```
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v5
         with:
-          files: ./TestResults/**/coverage.cobertura.xml
+          files: |
+            **/TestResults/*/coverage.cobertura.xml
           flags: unittests
           fail_ci_if_error: true
           verbose: true
-          disable_search: true
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
@@ -162,9 +162,9 @@ jobs:
             --configuration Release \
             --no-build \
             --collect:"XPlat Code Coverage" \
-            --settings codecov.runsettings \
-            --results-directory ./TestResults \
-            --logger "trx;LogFileName=test-results.trx"
+            -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=cobertura \
+            -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Include="[JD.MSBuild.Containers*]*" \
+            -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Exclude="[*Tests]*"
 
       - name: Pack (all packable projects)
         run: >
@@ -214,13 +214,13 @@ jobs:
             ./artifacts/*.snupkg
 
       - name: Upload coverage to Codecov (Release)
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v5
         with:
-          files: ./TestResults/**/coverage.cobertura.xml
+          files: |
+            **/TestResults/*/coverage.cobertura.xml
           flags: unittests
           fail_ci_if_error: false
           verbose: true
-          disable_search: true
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
