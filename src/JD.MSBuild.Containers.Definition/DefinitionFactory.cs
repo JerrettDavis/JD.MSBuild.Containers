@@ -26,7 +26,12 @@ public static class DefinitionFactory
         // Core Enablement
         // ========================================
         
-        props.Comment("Disabled by default. Users opt-in by setting DockerEnabled=true");
+        props.Comment(@"
+      Enablement: Disabled by default. Users opt-in by setting DockerEnabled=true.
+      
+      To enable Docker integration, set:
+        <DockerEnabled>true</DockerEnabled>
+    ");
         props.Property("DockerEnabled", "false", condition: "'$(DockerEnabled)'==''");
 
         // ========================================
@@ -34,20 +39,30 @@ public static class DefinitionFactory
         // Enable/disable specific Docker operations independently
         // ========================================
         
-        props.Comment("DockerGenerateDockerfile: Controls Dockerfile generation (true when DockerEnabled=true)");
+        props.Comment(@"
+      Granular Feature Control: Each Docker workflow component can be independently enabled/disabled.
+      This provides fine-grained control over what the integration does.
+      
+      DockerGenerateDockerfile: Controls Dockerfile generation (default: true when DockerEnabled=true)
+      DockerBuildImage: Controls Docker image building (default: false, must opt-in)
+      DockerRunContainer: Controls Docker container execution (default: false, must opt-in)
+      DockerPushImage: Controls pushing to registry (default: false, must opt-in)
+      
+      Example configurations:
+      - Generate-only mode: <DockerGenerateDockerfile>true</DockerGenerateDockerfile> <DockerBuildImage>false</DockerBuildImage>
+      - Build-only mode: <DockerGenerateDockerfile>false</DockerGenerateDockerfile> <DockerBuildImage>true</DockerBuildImage>
+      - Full automation: <DockerGenerateDockerfile>true</DockerGenerateDockerfile> <DockerBuildImage>true</DockerBuildImage>
+    ");
         props.PropertyGroup("'$(DockerGenerateDockerfile)'=='' and '$(DockerEnabled)'=='true'", group =>
         {
             group.Property("DockerGenerateDockerfile", "true");
         });
         props.Property("DockerGenerateDockerfile", "false", condition: "'$(DockerGenerateDockerfile)'==''");
         
-        props.Comment("DockerBuildImage: Controls whether Docker images are built");
         props.Property("DockerBuildImage", "false", condition: "'$(DockerBuildImage)'==''");
         
-        props.Comment("DockerRunContainer: Controls whether containers are started after build");
         props.Property("DockerRunContainer", "false", condition: "'$(DockerRunContainer)'==''");
         
-        props.Comment("DockerPushImage: Controls whether images are pushed to registry");
         props.Property("DockerPushImage", "false", condition: "'$(DockerPushImage)'==''");
 
         // ========================================
@@ -307,7 +322,10 @@ public static class DefinitionFactory
         // Fine-grained control over when scripts run
         // ========================================
         
-        props.Comment("Execute DockerPreBuildScript (auto-enabled when script path is set)");
+        props.Comment(@"
+      Script Execution Control: Granular control over pre/post script execution.
+      Each script type can be independently enabled/disabled.
+    ");
         props.PropertyGroup("'$(DockerExecutePreBuildScript)'=='' and '$(DockerPreBuildScript)'!=''", group =>
         {
             group.Property("DockerExecutePreBuildScript", "true");
@@ -339,7 +357,10 @@ public static class DefinitionFactory
         // Fingerprinting Control
         // ========================================
         
-        props.Comment("Use fingerprinting for incremental builds (skip regeneration when unchanged)");
+        props.Comment(@"
+      Fingerprinting Control: Enable/disable incremental build optimization.
+      When disabled, Dockerfile is always regenerated on build.
+    ");
         props.Property("DockerUseFingerprinting", "true", condition: "'$(DockerUseFingerprinting)'==''");
     }
 
@@ -361,6 +382,9 @@ public static class DefinitionFactory
     private static void ConfigureTaskAssemblyPath(TargetsBuilder targets)
     {
         // Determine the correct task assembly path based on MSBuild runtime and version
+        targets.Comment(@"
+    Determine the correct task assembly path based on MSBuild runtime and version.
+  ");
         targets.PropertyGroup("'$(MSBuildRuntimeType)' == 'Core' and $([MSBuild]::VersionGreaterThanOrEquals('$(MSBuildVersion)', '18.0'))", group =>
         {
             group.Property("_DockerTasksFolder", "net10.0");
@@ -397,6 +421,9 @@ public static class DefinitionFactory
 
     private static void RegisterTasks(TargetsBuilder targets)
     {
+        targets.Comment(@"
+    Register MSBuild tasks.
+  ");
         targets.UsingTask("JD.MSBuild.Containers.Tasks.ResolveDockerInputs", "$(_DockerTaskAssembly)");
         targets.UsingTask("JD.MSBuild.Containers.Tasks.GenerateDockerfile", "$(_DockerTaskAssembly)");
         targets.UsingTask("JD.MSBuild.Containers.Tasks.ComputeDockerFingerprint", "$(_DockerTaskAssembly)");
@@ -407,6 +434,19 @@ public static class DefinitionFactory
 
     private static void ConfigureDockerPipeline(TargetsBuilder targets)
     {
+        // Docker Build Pipeline section header
+        targets.Comment(@"
+    ========================================================================
+    Docker Build Pipeline: Generate Dockerfile and build container image
+    ========================================================================
+    
+    This pipeline supports multiple configuration modes:
+    1. Generate-only: DockerGenerateDockerfile=true, DockerBuildImage=false
+    2. Build-only: DockerGenerateDockerfile=false, DockerBuildImage=true (uses existing Dockerfile)
+    3. Full automation: DockerGenerateDockerfile=true, DockerBuildImage=true
+    4. Custom hooks: Enable specific pre/post scripts independently
+  ");
+
         // Lifecycle hook: BeforeDockerGeneration
         targets.Target("BeforeDockerGeneration", target =>
         {
@@ -517,6 +557,17 @@ public static class DefinitionFactory
 
     private static void ConfigureDockerBuildTargets(TargetsBuilder targets)
     {
+        // Docker Build Integration section header
+        targets.Comment(@"
+    ========================================================================
+    Docker Build Integration with MSBuild Hooks
+    ========================================================================
+    These targets respect the granular configuration options:
+    - DockerExecutePreBuildScript: Controls pre-build script execution
+    - DockerBuildOnBuild: Controls whether Docker build runs during MSBuild Build
+    - DockerExecutePostBuildScript: Controls post-build script execution
+  ");
+
         // Pre-build script execution
         targets.Target("DockerExecutePreBuildScript", target =>
         {
@@ -545,6 +596,10 @@ public static class DefinitionFactory
             target.BeforeTargets("DockerBuild");
             target.Condition("'$(DockerEnabled)' == 'true' and '$(DockerBuildImage)' == 'true' and '$(DockerGenerateDockerfile)' != 'true'");
 
+            target.Comment(@" 
+    Validate Dockerfile exists for build-only mode.
+    When DockerGenerateDockerfile=false and DockerBuildImage=true, we need an existing Dockerfile.
+  ");
             target.PropertyGroup("'$(DockerfileSource)' != ''", group =>
             {
                 group.Property("_DockerfileToUse", "$(DockerfileSource)");
@@ -630,6 +685,14 @@ public static class DefinitionFactory
 
     private static void ConfigureDockerRunTargets(TargetsBuilder targets)
     {
+        // Docker Run Integration section header
+        targets.Comment(@"
+    ========================================================================
+    Docker Run Integration
+    ========================================================================
+    Runs container after build (opt-in via DockerRunContainer=true and DockerRunOnBuild=true)
+  ");
+
         // Lifecycle hook: BeforeDockerRun
         targets.Target("BeforeDockerRun", target =>
         {
@@ -665,6 +728,14 @@ public static class DefinitionFactory
 
     private static void ConfigureDockerPublishTargets(TargetsBuilder targets)
     {
+        // Publish Integration section header
+        targets.Comment(@"
+    ========================================================================
+    Publish Integration
+    ========================================================================
+    These targets run during Publish and respect DockerBuildOnPublish setting.
+  ");
+
         // Pre-publish script execution
         targets.Target("DockerExecutePrePublishScript", target =>
         {
@@ -788,6 +859,13 @@ public static class DefinitionFactory
 
     private static void ConfigureCleanTarget(TargetsBuilder targets)
     {
+        // Clean Integration section header
+        targets.Comment(@"
+    ========================================================================
+    Clean Integration
+    ========================================================================
+  ");
+
         targets.Target("DockerClean", target =>
         {
             target.AfterTargets("Clean");
