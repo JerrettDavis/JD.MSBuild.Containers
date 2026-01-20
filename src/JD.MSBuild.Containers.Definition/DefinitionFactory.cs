@@ -596,7 +596,7 @@ public static class DefinitionFactory
             target.BeforeTargets("DockerBuild");
             target.Condition("'$(DockerEnabled)' == 'true' and '$(DockerBuildImage)' == 'true' and '$(DockerGenerateDockerfile)' != 'true'");
 
-            target.Comment(@" 
+            target.Comment(@"
     Validate Dockerfile exists for build-only mode.
     When DockerGenerateDockerfile=false and DockerBuildImage=true, we need an existing Dockerfile.
   ");
