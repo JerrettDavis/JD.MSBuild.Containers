@@ -47,17 +47,10 @@ jobs:
         run: |
           dotnet test JD.MSBuild.Containers.sln \
             --configuration Release \
-            --no-build \
             --collect:"XPlat Code Coverage" \
             -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=cobertura \
             -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Include="[JD.MSBuild.Containers*]*" \
             -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Exclude="[*Tests]*"
-      
-      - name: List coverage files (debug)
-        shell: bash
-        run: |
-          echo "Looking for coverage files..."
-          find . -type f -name "coverage.cobertura.xml" -o -name "*.cobertura.xml"
 
       - name: Install ReportGenerator
         run: dotnet tool update -g dotnet-reportgenerator-globaltool
@@ -166,23 +159,10 @@ jobs:
         run: |
           dotnet test JD.MSBuild.Containers.sln \
             --configuration Release \
-            --no-build \
             --collect:"XPlat Code Coverage" \
             -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=cobertura \
             -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Include="[JD.MSBuild.Containers*]*" \
             -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Exclude="[*Tests]*"
-      
-      - name: List coverage files (debug)
-        shell: bash
-        run: |
-          echo "Looking for coverage files..."
-          find . -type f -name "coverage.cobertura.xml" -o -name "*.cobertura.xml" | while read f; do
-            echo "Found: $f"
-            echo "Size: $(stat -c%s "$f" 2>/dev/null || stat -f%z "$f" 2>/dev/null) bytes"
-            echo "First few lines:"
-            head -n 10 "$f"
-            echo "---"
-          done
 
       - name: Pack (all packable projects)
         run: >
