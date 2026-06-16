@@ -150,10 +150,10 @@ jobs:
           --configuration Release
           --no-restore
           /p:ContinuousIntegrationBuild=true
-          /p:Version=${{ env.PACKAGE_VERSION }}
-          /p:AssemblyVersion=${{ env.ASSEMBLY_VERSION }}
-          /p:FileVersion=${{ env.FILE_VERSION }}
-          /p:PackageVersion=${{ env.PACKAGE_VERSION }}
+          /p:Version=$PACKAGE_VERSION
+          /p:AssemblyVersion=$ASSEMBLY_VERSION
+          /p:FileVersion=$FILE_VERSION
+          /p:PackageVersion=$PACKAGE_VERSION
 
       - name: Test with coverage (Release)
         run: |
@@ -172,14 +172,14 @@ jobs:
           --output ./artifacts
           /p:ContinuousIntegrationBuild=true
           /p:IncludeSymbols=${{ env.INCLUDE_SYMBOLS }}
-          /p:Version=${{ env.PACKAGE_VERSION }}
-          /p:AssemblyVersion=${{ env.ASSEMBLY_VERSION }}
-          /p:FileVersion=${{ env.FILE_VERSION }}
-          /p:PackageVersion=${{ env.PACKAGE_VERSION }}
+          /p:Version=$PACKAGE_VERSION
+          /p:AssemblyVersion=$ASSEMBLY_VERSION
+          /p:FileVersion=$FILE_VERSION
+          /p:PackageVersion=$PACKAGE_VERSION
 
       - name: Verify package was created
         run: |
-          PKG_PATH="./artifacts/JD.MSBuild.Containers.${{ env.PACKAGE_VERSION }}.nupkg"
+          PKG_PATH="./artifacts/JD.MSBuild.Containers.${PACKAGE_VERSION}.nupkg"
 
           if [ ! -f "$PKG_PATH" ]; then
             echo "ERROR: Package file was not created"
@@ -238,8 +238,8 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v3
         with:
-          tag_name: v${{ env.PACKAGE_VERSION }}
-          name: Release v${{ env.PACKAGE_VERSION }}
+          tag_name: v${{ steps.gitversion.outputs.nuGetVersionV2 }}
+          name: Release v${{ steps.gitversion.outputs.nuGetVersionV2 }}
           files: |
             ./artifacts/*.nupkg
             ./artifacts/*.snupkg
