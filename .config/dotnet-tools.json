@@ -3,7 +3,7 @@
   "isRoot": true,
   "tools": {
     "jd.msbuild.fluent.cli": {
-      "version": "1.3.23",
+      "version": "1.3.26",
       "commands": [
         "jdmsbuild"
       ]
