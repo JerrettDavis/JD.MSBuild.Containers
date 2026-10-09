@@ -13,7 +13,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="coverlet.collector" Version="10.0.1" />
+    <PackageReference Include="coverlet.collector" Version="10.1.0" />
     <PackageReference Include="Microsoft.Build.Locator" Version="1.11.2">
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
@@ -30,7 +30,7 @@
       <ExcludeAssets>runtime</ExcludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
-    <PackageReference Include="TinyBDD.Xunit" Version="0.19.42" />
+    <PackageReference Include="TinyBDD.Xunit" Version="0.19.43" />
     <PackageReference Include="xunit" Version="2.9.3" />
     <PackageReference Include="Xunit.SkippableFact" Version="1.5.85" />
     <PackageReference Include="xunit.runner.visualstudio" Version="4.0.0">
