@@ -65,7 +65,7 @@ jobs:
     
     steps:
       - name: Download Documentation Artifact
-        uses: actions/download-artifact@v8.0.1
+        uses: actions/download-artifact@v8.0.2
         with:
           name: documentation-site
           path: _site
