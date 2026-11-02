@@ -29,10 +29,10 @@
     </PackageReference>
     
     <!-- Hashing for fingerprinting -->
-    <PackageReference Include="System.IO.Hashing" Version="10.0.13" />
+    <PackageReference Include="System.IO.Hashing" Version="10.0.14" />
     
     <!-- JSON handling -->
-    <PackageReference Include="System.Text.Json" Version="10.0.13" />
+    <PackageReference Include="System.Text.Json" Version="10.0.14" />
   </ItemGroup>
 
 </Project>
